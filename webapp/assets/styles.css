@@ -1,3 +1,6 @@
+:root {
+  --vh: 100vh;
+}
 * {
   box-sizing: border-box;
 }
@@ -6,7 +9,7 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #0f1115;
+  background: #0536d4;
   color: #e6e6e6;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
@@ -20,7 +23,8 @@ body,
 #app {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: var(--vh);
+  min-height: var(--vh);
 }
 
 /* Onboarding */
@@ -31,6 +35,8 @@ body,
   display: none;
   z-index: 50;
   color: #fff;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 .onb-visible {
   display: block;
@@ -39,7 +45,7 @@ body,
   height: 100%;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
-  padding: 16px;
+  padding: 0 16px;
 }
 .onb-top {
   display: flex;
@@ -82,7 +88,7 @@ body,
 }
 .onb-btn {
   background: #fff;
-  color: #0a42d6;
+  color: #0536d4;
   border: 0;
   padding: 14px 22px;
   border-radius: 14px;
@@ -95,12 +101,16 @@ body,
   background: #12141a;
   border-bottom: 1px solid #1f2330;
 }
+.app-header {
+  padding-top: calc(12px + env(safe-area-inset-top));
+}
 .app-footer {
   border-top: 1px solid #1f2330;
   border-bottom: none;
   display: flex;
   gap: 8px;
   align-items: center;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 .buy-btn {
   margin-left: auto;
@@ -234,12 +244,14 @@ body,
 .home {
   position: fixed;
   inset: 0;
-  background: #0a42d6;
+  background: #0536d4;
   color: #fff;
   z-index: 40;
   display: grid;
   grid-template-rows: 1fr auto auto auto;
   padding: 16px;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 .home-hero {
   display: flex;
@@ -274,10 +286,12 @@ body,
 .ph {
   position: fixed;
   inset: 0;
-  background: #0a42d6;
+  background: #0536d4;
   color: #fff;
   display: none;
   z-index: 60;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 .ph .ph-inner {
   height: 100%;
@@ -333,4 +347,10 @@ body.state-reader .app-header {
 }
 body.state-reader .app-footer {
   display: flex;
+}
+@supports (height: 100svh) {
+  #app {
+    height: 100svh;
+    min-height: 100svh;
+  }
 }
