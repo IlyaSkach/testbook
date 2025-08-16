@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>Admin — TG Book</title>
+	<link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+	<div class="admin">
+		<h1>Админка: заявки на покупку</h1>
+		<div class="admin-auth">
+			<input id="adminKey" placeholder="ADMIN_PANEL_KEY">
+			<button id="loginBtn">Войти</button>
+		</div>
+		<div id="adminPanel" class="hidden">
+			<button id="refreshBtn">Обновить</button>
+			<table id="requestsTable">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>User</th>
+						<th>Status</th>
+						<th>Действия</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+		</div>
+	</div>
+	<script type="module" src="/assets/admin.js"></script>
+</body>
+
+</html>

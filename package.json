@@ -1,0 +1,13 @@
+{
+  "name": "tg-book",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "bot": "node bot/bot.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}

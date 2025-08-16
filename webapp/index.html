@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>TG Book</title>
+	<link rel="stylesheet" href="/assets/styles.css">
+	<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+
+<body>
+	<div id="app">
+		<header class="app-header">Книга</header>
+		<main class="reader">
+			<div class="page" id="page-container"></div>
+			<button class="nav-btn left" id="prevBtn" aria-label="Назад"></button>
+			<button class="nav-btn right" id="nextBtn" aria-label="Вперед"></button>
+		</main>
+		<footer class="app-footer">
+			<div id="status"></div>
+			<button id="buyBtn" class="buy-btn">Купить полную версию</button>
+		</footer>
+	</div>
+	<script type="module" src="/assets/app.js"></script>
+</body>
+
+</html>

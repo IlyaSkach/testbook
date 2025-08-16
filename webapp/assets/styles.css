@@ -1,0 +1,164 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0f1115;
+  color: #e6e6e6;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+html,
+body,
+#app {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+.app-header,
+.app-footer {
+  padding: 12px 16px;
+  background: #12141a;
+  border-bottom: 1px solid #1f2330;
+}
+.app-footer {
+  border-top: 1px solid #1f2330;
+  border-bottom: none;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.buy-btn {
+  margin-left: auto;
+  background: #2b8a3e;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+.buy-btn.hidden {
+  display: none;
+}
+.reader {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+.page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+.page-inner {
+  position: absolute;
+  inset: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+.page-inner img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+/* Flip animation */
+.flip-enter {
+  animation: flipIn 0.35s ease both;
+}
+.flip-exit {
+  animation: flipOut 0.35s ease both;
+}
+@keyframes flipIn {
+  from {
+    transform: rotateY(-90deg);
+    opacity: 0.2;
+  }
+  to {
+    transform: rotateY(0);
+    opacity: 1;
+  }
+}
+@keyframes flipOut {
+  from {
+    transform: rotateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: rotateY(90deg);
+    opacity: 0.2;
+  }
+}
+
+.nav-btn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16%;
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  opacity: 0.25;
+}
+.nav-btn.left {
+  left: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.nav-btn.right {
+  right: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+.nav-btn:active {
+  opacity: 0.45;
+}
+
+#status {
+  font-size: 12px;
+  color: #9aa4b2;
+}
+
+/* Admin */
+.admin {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.hidden {
+  display: none;
+}
+.admin table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+.admin th,
+.admin td {
+  border-bottom: 1px solid #333;
+  padding: 8px 6px;
+  text-align: left;
+}
+.admin button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
