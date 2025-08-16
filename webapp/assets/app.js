@@ -14,6 +14,8 @@ if (localStorage.getItem("onb_done") === "1") {
 }
 onbStart?.addEventListener("click", () => {
   onb?.classList.remove("onb-visible");
+  // гарантируем, что домашний экран виден
+  document.getElementById("home")?.classList.remove("hidden");
   localStorage.setItem("onb_done", "1");
 });
 
@@ -29,20 +31,25 @@ const btnRead = document.getElementById("btnRead");
 const btnMerch = document.getElementById("btnMerch");
 
 function showPlaceholder() {
-  ph.classList.add("show");
+  ph?.classList.add("show");
 }
 function hidePlaceholder() {
-  ph.classList.remove("show");
+  ph?.classList.remove("show");
 }
 phBack?.addEventListener("click", hidePlaceholder);
 btnListen?.addEventListener("click", showPlaceholder);
 btnMerch?.addEventListener("click", showPlaceholder);
 btnRead?.addEventListener("click", () => {
+  // полностью закрываем все оверлеи
   hidePlaceholder();
-  home.classList.add("hidden");
-  headerEl.classList.remove("hidden");
-  reader.classList.remove("hidden");
-  footer.classList.remove("hidden");
+  onb?.classList.remove("onb-visible");
+  home?.classList.add("hidden");
+  // показываем читалку во весь экран
+  headerEl?.classList.remove("hidden");
+  reader?.classList.remove("hidden");
+  footer?.classList.remove("hidden");
+  reader.style.display = "flex";
+  // перерисовываем текущую страницу
   render(currentIndex);
 });
 
@@ -138,6 +145,7 @@ function effectivePages() {
 
 function render(index) {
   const list = effectivePages();
+  if (!list.length) return;
   if (index < 0) index = 0;
   if (index >= list.length) index = list.length - 1;
   currentIndex = index;
@@ -161,7 +169,6 @@ nextBtn.addEventListener("click", () => {
   render(currentIndex + 1);
 });
 
-// свайпы
 let touchStartX = null;
 pageContainer.addEventListener(
   "touchstart",
