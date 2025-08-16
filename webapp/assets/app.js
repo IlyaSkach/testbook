@@ -50,7 +50,12 @@ btnMerch?.addEventListener("click", () => {
 btnRead?.addEventListener("click", () => {
   ph?.classList.remove("show");
   setState("state-reader");
-  render(currentIndex);
+  // показываем «загрузка», а затем в следующем тике грузим книгу
+  statusEl.textContent = "Загрузка книги...";
+  setTimeout(async () => {
+    if (!BOOK_PAGES) await loadBookPages();
+    render(0);
+  }, 0);
 });
 
 // init state
@@ -346,7 +351,6 @@ buyBtn.addEventListener("click", async () => {
 });
 
 (async function init() {
-  await loadBookPages();
-  render(0);
+  // убрал автозагрузку книги, чтобы не блокировать кнопку «Начать»
   await checkAccess();
 })();
