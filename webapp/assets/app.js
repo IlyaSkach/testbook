@@ -15,6 +15,18 @@ const btnMerch = document.getElementById("btnMerch");
 const headerEl = document.querySelector(".app-header");
 const footerEl = document.querySelector(".app-footer");
 const readerEl = document.getElementById("reader");
+const statusEl = document.getElementById("status");
+
+const DEBUG = location.search.includes("debug=1");
+function dbg(...args) {
+  console.log("[BOOK]", ...args);
+  if (DEBUG && statusEl) {
+    const msg = args
+      .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
+      .join(" ");
+    statusEl.textContent = `[BOOK] ${msg}`;
+  }
+}
 
 function setState(state) {
   document.body.classList.remove(
@@ -93,7 +105,6 @@ const pageContainer = document.getElementById("page-container");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const buyBtn = document.getElementById("buyBtn");
-const statusEl = document.getElementById("status");
 
 function getUser() {
   const u = tg?.initDataUnsafe?.user;
@@ -124,8 +135,9 @@ async function checkAccess() {
     buyBtn.classList.toggle("hidden", hasFullAccess);
     statusEl.textContent = hasFullAccess ? "Полный доступ" : "Демо-версия";
     return hasFullAccess;
-  } catch {
+  } catch (e) {
     statusEl.textContent = "Ошибка сети";
+    dbg("checkAccess error", e?.message);
     return false;
   }
 }
@@ -258,15 +270,19 @@ function paginateSectionsToPages(sections) {
   if (host.innerHTML.trim()) pushPageFromHost();
   host.remove();
   // пометим первые 2 как демо
-  return pages.map((p, i) => ({
+  const out = pages.map((p, i) => ({
     type: i < 2 ? "demo" : "full",
     content: p.content,
   }));
+  dbg("paginate result pages:", out.length);
+  return out;
 }
 
 async function loadBookPages() {
   try {
+    statusEl.textContent = "Загрузка книги...";
     const res = await fetch("/assets/book.json", { cache: "no-store" });
+    dbg("fetch /assets/book.json status", res.status);
     if (!res.ok) throw new Error("no book.json");
     const data = await res.json();
     const sections = Array.isArray(data.pages)
@@ -274,9 +290,13 @@ async function loadBookPages() {
       : Array.isArray(data.sections)
       ? data.sections
       : [];
+    dbg("sections length", sections.length);
     if (!sections.length) throw new Error("empty book");
     BOOK_PAGES = paginateSectionsToPages(sections);
-  } catch {
+    statusEl.textContent = hasFullAccess ? "Полный доступ" : "Демо-версия";
+  } catch (e) {
+    dbg("loadBookPages error", e?.message);
+    statusEl.textContent = "Ошибка загрузки книги";
     // fallback: короткая демо
     BOOK_PAGES = [
       {
@@ -301,10 +321,14 @@ function effectivePages() {
 
 function render(i) {
   const list = effectivePages();
-  if (!list || !list.length) return;
+  if (!list || !list.length) {
+    dbg("render: no pages");
+    return;
+  }
   if (i < 0) i = 0;
   if (i >= list.length) i = list.length - 1;
   currentIndex = i;
+  dbg("render page", i + 1, "of", list.length);
   const old = pageContainer.querySelector(".page-inner");
   if (old) {
     old.classList.add("flip-exit");
@@ -355,8 +379,9 @@ buyBtn.addEventListener("click", async () => {
     statusEl.textContent = data.ok
       ? "Заявка отправлена. Ожидайте подтверждения."
       : "Ошибка: " + (data.error || "неизвестно");
-  } catch {
+  } catch (e) {
     statusEl.textContent = "Ошибка сети";
+    dbg("create-request error", e?.message);
   } finally {
     buyBtn.disabled = false;
     buyBtn.textContent = "Купить полную версию";
