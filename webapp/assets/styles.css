@@ -131,6 +131,7 @@ body,
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  touch-action: pan-x;
 }
 .page {
   position: relative;
@@ -147,7 +148,7 @@ body,
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: auto;
+  overflow: hidden;
 }
 .page-inner img {
   max-width: 100%;
@@ -182,29 +183,29 @@ body,
   }
 }
 
+/* Invisible half-screen tap zones */
 .nav-btn {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 16%;
-  background: rgba(255, 255, 255, 0.04);
+  width: 50%;
+  background: transparent;
   border: none;
-  opacity: 0.25;
+  opacity: 0;
+  z-index: 10;
 }
 .nav-btn.left {
   left: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  border-top-right-radius: 12px;
-  border-bottom-right-radius: 12px;
+  border: none;
+  border-radius: 0;
 }
 .nav-btn.right {
   right: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
-  border-top-left-radius: 12px;
-  border-bottom-left-radius: 12px;
+  border: none;
+  border-radius: 0;
 }
 .nav-btn:active {
-  opacity: 0.45;
+  opacity: 0;
 }
 
 #status {
