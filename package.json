@@ -4,11 +4,15 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "bot": "node bot/bot.js"
+    "bot": "node bot/bot.js",
+    "import:docx": "node scripts/docx-to-sections.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "node-telegram-bot-api": "^0.66.0",
     "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "mammoth": "^1.6.0"
   }
 }

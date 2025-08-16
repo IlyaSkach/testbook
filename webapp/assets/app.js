@@ -130,13 +130,178 @@ async function checkAccess() {
   }
 }
 
+// --------- АВТОПАГИНАЦИЯ ---------
+let BOOK_PAGES = null; // итоговые страницы после пагинации
+
+function getViewportSize() {
+  const rect = pageContainer.getBoundingClientRect();
+  return { width: rect.width, height: rect.height };
+}
+
+function createMeasureHost() {
+  const host = document.createElement("div");
+  host.style.position = "fixed";
+  host.style.left = "-99999px";
+  host.style.top = "0";
+  host.style.width = getViewportSize().width + "px";
+  host.style.height = getViewportSize().height + "px";
+  host.className = "page-inner"; // чтобы совпала типографика/отступы
+  document.body.appendChild(host);
+  return host;
+}
+
+function htmlToNodes(html) {
+  const tpl = document.createElement("template");
+  tpl.innerHTML = html.trim();
+  return Array.from(tpl.content.childNodes);
+}
+
+function isTextParagraph(node) {
+  return (
+    node.nodeType === 1 &&
+    node.tagName === "P" &&
+    Array.from(node.childNodes).every(
+      (n) => n.nodeType === 3 || (n.nodeType === 1 && n.tagName === "BR")
+    )
+  );
+}
+
+function splitParagraphByWords(p, host, maxHeight) {
+  const words = p.textContent.split(/(\s+)/); // сохраняем пробелы
+  const first = document.createElement("p");
+  const rest = document.createElement("p");
+  let i = 0;
+  first.textContent = "";
+  host.appendChild(first);
+  while (i < words.length) {
+    const next = first.textContent + words[i];
+    first.textContent = next;
+    i++;
+    if (host.scrollHeight > maxHeight) {
+      // откат последнего слова
+      first.textContent = first.textContent.slice(
+        0,
+        -(words[i - 1] || "").length
+      );
+      // остаток
+      rest.textContent = words.slice(i - 1).join("");
+      break;
+    }
+  }
+  host.removeChild(first);
+  return { first, rest: rest.textContent ? rest : null };
+}
+
+function paginateSectionsToPages(sections) {
+  const { height } = getViewportSize();
+  const maxHeight = height; // учитываем паддинги класса page-inner
+  const host = createMeasureHost();
+  const pages = [];
+
+  function pushPageFromHost() {
+    pages.push({ content: host.innerHTML });
+    host.innerHTML = "";
+  }
+
+  const queue = [];
+  sections.forEach((h) => queue.push(h));
+
+  while (queue.length) {
+    const sectionHtml = queue.shift();
+    const nodes = htmlToNodes(sectionHtml);
+    for (let node of nodes) {
+      if (node.nodeType === 3 && !node.textContent.trim()) continue;
+      // Полноэкранные картинки — отдельной страницей
+      if (
+        node.nodeType === 1 &&
+        node.tagName === "IMG" &&
+        node.classList.contains("full-img")
+      ) {
+        if (host.innerHTML.trim()) pushPageFromHost();
+        host.innerHTML = "";
+        host.appendChild(node);
+        pushPageFromHost();
+        continue;
+      }
+      host.appendChild(node);
+      if (host.scrollHeight > maxHeight) {
+        host.removeChild(node);
+        // если это простой параграф — делим по словам
+        if (isTextParagraph(node)) {
+          const { first, rest } = splitParagraphByWords(node, host, maxHeight);
+          host.appendChild(first);
+          pushPageFromHost();
+          host.innerHTML = "";
+          if (rest) {
+            // добавляем остаток обратно в очередь перед следующими элементами
+            queue.unshift(rest.outerHTML);
+          }
+          // оставшиеся узлы этой секции тоже вернуть в очередь
+          const remaining = Array.from(
+            nodes.slice(nodes.indexOf(node) + 1)
+          ).map((n) => n.outerHTML || n.textContent);
+          for (let i = remaining.length - 1; i >= 0; i--)
+            queue.unshift(remaining[i]);
+          break;
+        } else {
+          // сложный блок: завершаем текущую страницу и переносим блок на следующую
+          pushPageFromHost();
+          host.appendChild(node);
+          if (host.scrollHeight > maxHeight) {
+            // если один элемент всё ещё больше, просто делаем его отдельной страницей
+            pushPageFromHost();
+          }
+        }
+      }
+    }
+  }
+  if (host.innerHTML.trim()) pushPageFromHost();
+  host.remove();
+  // пометим первые 2 как демо
+  return pages.map((p, i) => ({
+    type: i < 2 ? "demo" : "full",
+    content: p.content,
+  }));
+}
+
+async function loadBookPages() {
+  try {
+    const res = await fetch("/assets/book.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("no book.json");
+    const data = await res.json();
+    const sections = Array.isArray(data.pages)
+      ? data.pages.map((p) => (typeof p === "string" ? p : p.content))
+      : Array.isArray(data.sections)
+      ? data.sections
+      : [];
+    if (!sections.length) throw new Error("empty book");
+    BOOK_PAGES = paginateSectionsToPages(sections);
+  } catch {
+    // fallback: короткая демо
+    BOOK_PAGES = [
+      {
+        type: "demo",
+        content:
+          '<h2>Глава 1. Пролог</h2><p>Демо‑страница 1</p><img class="full-img" src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80" />',
+      },
+      {
+        type: "demo",
+        content: "<h2>Глава 2. Предисловие</h2><p>Демо‑страница 2</p>",
+      },
+      { type: "full", content: "<h2>Глава 3</h2><p>Полная часть</p>" },
+    ];
+  }
+}
+
 function effectivePages() {
-  return hasFullAccess ? pages : pages.filter((p) => p.type === "demo");
+  return hasFullAccess
+    ? BOOK_PAGES
+    : (BOOK_PAGES || []).filter((p) => p.type === "demo");
 }
 
 function render(i) {
   const list = effectivePages();
-  if (!list.length) return;
+  if (!list || !list.length) return;
   if (i < 0) i = 0;
   if (i >= list.length) i = list.length - 1;
   currentIndex = i;
@@ -199,6 +364,7 @@ buyBtn.addEventListener("click", async () => {
 });
 
 (async function init() {
+  await loadBookPages();
   render(0);
   await checkAccess();
 })();
