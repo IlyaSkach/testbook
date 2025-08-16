@@ -38,10 +38,12 @@ phBack?.addEventListener("click", hidePlaceholder);
 btnListen?.addEventListener("click", showPlaceholder);
 btnMerch?.addEventListener("click", showPlaceholder);
 btnRead?.addEventListener("click", () => {
+  hidePlaceholder();
   home.classList.add("hidden");
   headerEl.classList.remove("hidden");
   reader.classList.remove("hidden");
   footer.classList.remove("hidden");
+  render(currentIndex);
 });
 
 // Book data
