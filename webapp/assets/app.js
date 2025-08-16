@@ -4,10 +4,45 @@ if (tg) {
   tg.disableVerticalSwipes?.();
 }
 
-// блокируем контекстное меню
 document.addEventListener("contextmenu", (e) => e.preventDefault());
 
-// Данные книги: 2 демо + 3 платные
+// Onboarding
+const onb = document.getElementById("onboarding");
+const onbStart = document.getElementById("onbStart");
+if (localStorage.getItem("onb_done") === "1") {
+  onb?.classList.remove("onb-visible");
+}
+onbStart?.addEventListener("click", () => {
+  onb?.classList.remove("onb-visible");
+  localStorage.setItem("onb_done", "1");
+});
+
+// Home & placeholder
+const home = document.getElementById("home");
+const reader = document.getElementById("reader");
+const footer = document.querySelector(".app-footer");
+const ph = document.getElementById("placeholder");
+const phBack = document.getElementById("phBack");
+const btnListen = document.getElementById("btnListen");
+const btnRead = document.getElementById("btnRead");
+const btnMerch = document.getElementById("btnMerch");
+
+function showPlaceholder() {
+  ph.classList.add("show");
+}
+function hidePlaceholder() {
+  ph.classList.remove("show");
+}
+phBack?.addEventListener("click", hidePlaceholder);
+btnListen?.addEventListener("click", showPlaceholder);
+btnMerch?.addEventListener("click", showPlaceholder);
+btnRead?.addEventListener("click", () => {
+  home.classList.add("hidden");
+  reader.classList.remove("hidden");
+  footer.classList.remove("hidden");
+});
+
+// Book data
 const pages = [
   {
     type: "demo",
@@ -93,12 +128,14 @@ async function checkAccess() {
   }
 }
 
+function effectivePages() {
+  return hasFullAccess ? pages : pages.filter((p) => p.type === "demo");
+}
+
 function render(index) {
-  const effectivePages = hasFullAccess
-    ? pages
-    : pages.filter((p) => p.type === "demo");
+  const list = effectivePages();
   if (index < 0) index = 0;
-  if (index >= effectivePages.length) index = effectivePages.length - 1;
+  if (index >= list.length) index = list.length - 1;
   currentIndex = index;
 
   const old = pageContainer.querySelector(".page-inner");
@@ -109,7 +146,7 @@ function render(index) {
 
   const wrapper = document.createElement("div");
   wrapper.className = "page-inner flip-enter";
-  wrapper.innerHTML = effectivePages[index].content;
+  wrapper.innerHTML = list[index].content;
   pageContainer.appendChild(wrapper);
 }
 
@@ -154,11 +191,9 @@ buyBtn.addEventListener("click", async () => {
       body: JSON.stringify({ user }),
     });
     const data = await res.json();
-    if (data.ok) {
-      statusEl.textContent = "Заявка отправлена. Ожидайте подтверждения.";
-    } else {
-      statusEl.textContent = "Ошибка: " + (data.error || "неизвестно");
-    }
+    statusEl.textContent = data.ok
+      ? "Заявка отправлена. Ожидайте подтверждения."
+      : "Ошибка: " + (data.error || "неизвестно");
   } catch (e) {
     statusEl.textContent = "Ошибка сети";
   } finally {

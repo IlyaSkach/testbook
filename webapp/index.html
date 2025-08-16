@@ -11,13 +11,55 @@
 
 <body>
 	<div id="app">
+		<!-- Onboarding overlay -->
+		<div id="onboarding" class="onb onb-visible" role="dialog" aria-modal="true">
+			<div class="onb-inner">
+				<header class="onb-top">
+					<div class="onb-title">RizyLand</div>
+				</header>
+				<div class="onb-hero">
+					<img src="/assets/startimg.png" alt="welcome" class="onb-img" />
+				</div>
+				<div class="onb-content">
+					<h2>Добро пожаловать в мир Ризи!</h2>
+					<p>Читай текст или включай аудио‑режим и отправляйся в мир приключений, где бы ты ни находился</p>
+				</div>
+				<div class="onb-actions">
+					<button id="onbStart" class="onb-btn">Начать →</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Home screen -->
+		<div id="home" class="home">
+			<div class="home-hero">
+				<img src="/assets/choose.png" alt="choose" class="home-img" />
+			</div>
+			<div class="home-actions">
+				<button class="btn-primary" id="btnListen">🎧 Слушать книгу</button>
+				<button class="btn-primary" id="btnRead">📖 Читать книгу</button>
+				<button class="btn-primary" id="btnMerch">👕 Магазин с мерчем</button>
+			</div>
+			<div class="home-note">Ещё можно почитать об авторе и написать в Службу заботы</div>
+		</div>
+
+		<!-- Placeholder overlay -->
+		<div id="placeholder" class="ph hidden" role="dialog" aria-modal="true">
+			<div class="ph-inner">
+				<img src="/assets/startimg.png" alt="soon" class="ph-img" />
+				<h2>Раздел в разработке</h2>
+				<p>Совсем скоро здесь появится много интересного!</p>
+				<button id="phBack" class="onb-btn">Назад</button>
+			</div>
+		</div>
+
 		<header class="app-header">Книга</header>
-		<main class="reader">
+		<main class="reader hidden" id="reader">
 			<div class="page" id="page-container"></div>
 			<button class="nav-btn left" id="prevBtn" aria-label="Назад"></button>
 			<button class="nav-btn right" id="nextBtn" aria-label="Вперед"></button>
 		</main>
-		<footer class="app-footer">
+		<footer class="app-footer hidden">
 			<div id="status"></div>
 			<button id="buyBtn" class="buy-btn">Купить полную версию</button>
 		</footer>
