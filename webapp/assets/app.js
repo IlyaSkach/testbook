@@ -56,49 +56,6 @@ btnRead?.addEventListener("click", () => {
 // init state
 setState("state-onboarding");
 
-// Book data
-const pages = [
-  {
-    type: "demo",
-    content: `
-    <h2>Глава 1. Пролог</h2>
-    <p>Это демо‑страница 1. Книга читается прямо внутри приложения. Текст адаптирован под экран телефона.</p>
-    <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80" alt="demo1" />
-    <p>Легкая, удобная навигация — листайте кнопками по краям экрана.</p>
-  `,
-  },
-  {
-    type: "demo",
-    content: `
-    <h2>Глава 2. Предисловие</h2>
-    <p>Это демо‑страница 2. После покупки вы откроете оставшиеся главы.</p>
-    <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80" alt="demo2" />
-    <p>Никаких загрузок — защита от копирования на первом этапе.</p>
-  `,
-  },
-  {
-    type: "full",
-    content: `
-    <h2>Глава 3. Начало</h2>
-    <p>Полный доступ открыт. Добро пожаловать в основную часть книги.</p>
-  `,
-  },
-  {
-    type: "full",
-    content: `
-    <h2>Глава 4. Поворот</h2>
-    <p>Сюжет углубляется, герои раскрываются, а вы продолжаете читать удобно и безопасно.</p>
-  `,
-  },
-  {
-    type: "full",
-    content: `
-    <h2>Глава 5. Финал</h2>
-    <p>Спасибо за покупку! Надеемся, вам понравилось.</p>
-  `,
-  },
-];
-
 let currentIndex = 0;
 let hasFullAccess = false;
 const pageContainer = document.getElementById("page-container");
@@ -281,7 +238,7 @@ function paginateSectionsToPages(sections) {
 async function loadBookPages() {
   try {
     statusEl.textContent = "Загрузка книги...";
-    const res = await fetch("/assets/book.json", { cache: "no-store" });
+    const res = await fetch("/assets/book.json?v=2", { cache: "force-cache" });
     dbg("fetch /assets/book.json status", res.status);
     if (!res.ok) throw new Error("no book.json");
     const data = await res.json();
