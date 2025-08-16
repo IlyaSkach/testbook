@@ -21,6 +21,7 @@ onbStart?.addEventListener("click", () => {
 const home = document.getElementById("home");
 const reader = document.getElementById("reader");
 const footer = document.querySelector(".app-footer");
+const headerEl = document.querySelector(".app-header");
 const ph = document.getElementById("placeholder");
 const phBack = document.getElementById("phBack");
 const btnListen = document.getElementById("btnListen");
@@ -38,6 +39,7 @@ btnListen?.addEventListener("click", showPlaceholder);
 btnMerch?.addEventListener("click", showPlaceholder);
 btnRead?.addEventListener("click", () => {
   home.classList.add("hidden");
+  headerEl.classList.remove("hidden");
   reader.classList.remove("hidden");
   footer.classList.remove("hidden");
 });
@@ -58,7 +60,7 @@ const pages = [
     content: `
     <h2>Глава 2. Предисловие</h2>
     <p>Это демо‑страница 2. После покупки вы откроете оставшиеся главы.</p>
-    <img src="https://images.unsplash.com/photo-1513477967668-2aaf11838bd0?w=1200&q=80" alt="demo2" />
+    <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80" alt="demo2" />
     <p>Никаких загрузок — защита от копирования на первом этапе.</p>
   `,
   },
