@@ -6,20 +6,9 @@ if (tg) {
 
 document.addEventListener("contextmenu", (e) => e.preventDefault());
 
-// Onboarding
+// DOM
 const onb = document.getElementById("onboarding");
 const onbStart = document.getElementById("onbStart");
-if (localStorage.getItem("onb_done") === "1") {
-  onb?.classList.remove("onb-visible");
-}
-onbStart?.addEventListener("click", () => {
-  onb?.classList.remove("onb-visible");
-  // гарантируем, что домашний экран виден
-  document.getElementById("home")?.classList.remove("hidden");
-  localStorage.setItem("onb_done", "1");
-});
-
-// Home & placeholder
 const home = document.getElementById("home");
 const reader = document.getElementById("reader");
 const footer = document.querySelector(".app-footer");
@@ -30,28 +19,37 @@ const btnListen = document.getElementById("btnListen");
 const btnRead = document.getElementById("btnRead");
 const btnMerch = document.getElementById("btnMerch");
 
-function showPlaceholder() {
-  ph?.classList.add("show");
+function hide(el) {
+  el && el.classList.add("hidden");
 }
-function hidePlaceholder() {
-  ph?.classList.remove("show");
+function show(el) {
+  el && el.classList.remove("hidden");
 }
-phBack?.addEventListener("click", hidePlaceholder);
-btnListen?.addEventListener("click", showPlaceholder);
-btnMerch?.addEventListener("click", showPlaceholder);
-btnRead?.addEventListener("click", () => {
-  // полностью закрываем все оверлеи
-  hidePlaceholder();
-  onb?.classList.remove("onb-visible");
-  home?.classList.add("hidden");
-  // показываем читалку во весь экран
-  headerEl?.classList.remove("hidden");
-  reader?.classList.remove("hidden");
-  footer?.classList.remove("hidden");
-  reader.style.display = "flex";
-  // перерисовываем текущую страницу
+
+function enterHome() {
+  if (onb) onb.classList.remove("onb-visible");
+  hide(reader);
+  hide(footer);
+  show(home);
+  hide(ph);
+  hide(headerEl);
+}
+
+function enterReader() {
+  if (onb) onb.classList.remove("onb-visible");
+  hide(home);
+  hide(ph);
+  show(headerEl);
+  show(reader);
+  show(footer);
   render(currentIndex);
-});
+}
+
+onbStart?.addEventListener("click", enterHome);
+phBack?.addEventListener("click", () => hide(ph));
+btnListen?.addEventListener("click", () => ph.classList.add("show"));
+btnMerch?.addEventListener("click", () => ph.classList.add("show"));
+btnRead?.addEventListener("click", enterReader);
 
 // Book data
 const pages = [
@@ -214,6 +212,8 @@ buyBtn.addEventListener("click", async () => {
 });
 
 (async function init() {
+  // всегда показываем онбординг при загрузке
+  if (onb) onb.classList.add("onb-visible");
   render(0);
   await checkAccess();
 })();
