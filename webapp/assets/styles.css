@@ -294,3 +294,43 @@ body,
 .ph.show {
   display: block;
 }
+
+/* State machine visibility */
+body.state-onboarding .onb {
+  display: block;
+}
+body.state-onboarding .home,
+body.state-onboarding .reader,
+body.state-onboarding .app-header,
+body.state-onboarding .app-footer {
+  display: none !important;
+}
+
+body.state-home .onb {
+  display: none;
+}
+body.state-home .home {
+  display: grid;
+}
+body.state-home .reader,
+body.state-home .app-header,
+body.state-home .app-footer {
+  display: none !important;
+}
+body.state-home .ph.show {
+  display: block;
+}
+
+body.state-reader .onb,
+body.state-reader .home {
+  display: none;
+}
+body.state-reader .reader {
+  display: flex;
+}
+body.state-reader .app-header {
+  display: block;
+}
+body.state-reader .app-footer {
+  display: flex;
+}

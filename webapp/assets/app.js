@@ -6,63 +6,43 @@ if (tg) {
 
 document.addEventListener("contextmenu", (e) => e.preventDefault());
 
-// DOM
-const onb = document.getElementById("onboarding");
 const onbStart = document.getElementById("onbStart");
-const home = document.getElementById("home");
-const reader = document.getElementById("reader");
-const footer = document.querySelector(".app-footer");
-const headerEl = document.querySelector(".app-header");
 const ph = document.getElementById("placeholder");
 const phBack = document.getElementById("phBack");
 const btnListen = document.getElementById("btnListen");
 const btnRead = document.getElementById("btnRead");
 const btnMerch = document.getElementById("btnMerch");
+const headerEl = document.querySelector(".app-header");
+const footerEl = document.querySelector(".app-footer");
+const readerEl = document.getElementById("reader");
 
-function hide(el) {
-  el && el.classList.add("hidden");
-}
-function show(el) {
-  el && el.classList.remove("hidden");
-}
-
-function ensurePhHidden() {
-  if (ph) {
-    ph.classList.remove("show");
-    ph.classList.add("hidden");
-  }
+function setState(state) {
+  document.body.classList.remove(
+    "state-onboarding",
+    "state-home",
+    "state-reader"
+  );
+  document.body.classList.add(state);
 }
 
-function enterHome() {
-  if (onb) onb.classList.remove("onb-visible");
-  ensurePhHidden();
-  hide(reader);
-  hide(footer);
-  hide(headerEl);
-  show(home);
-}
-
-function enterReader() {
-  if (onb) onb.classList.remove("onb-visible");
-  ensurePhHidden();
-  hide(home);
-  show(headerEl);
-  show(reader);
-  show(footer);
-  render(currentIndex);
-}
-
-onbStart?.addEventListener("click", enterHome);
-phBack?.addEventListener("click", ensurePhHidden);
+onbStart?.addEventListener("click", () => setState("state-home"));
+phBack?.addEventListener("click", () => {
+  ph?.classList.remove("show");
+});
 btnListen?.addEventListener("click", () => {
   ph?.classList.add("show");
-  ph?.classList.remove("hidden");
 });
 btnMerch?.addEventListener("click", () => {
   ph?.classList.add("show");
-  ph?.classList.remove("hidden");
 });
-btnRead?.addEventListener("click", enterReader);
+btnRead?.addEventListener("click", () => {
+  ph?.classList.remove("show");
+  setState("state-reader");
+  render(currentIndex);
+});
+
+// init state
+setState("state-onboarding");
 
 // Book data
 const pages = [
@@ -109,7 +89,6 @@ const pages = [
 
 let currentIndex = 0;
 let hasFullAccess = false;
-
 const pageContainer = document.getElementById("page-container");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
@@ -117,14 +96,15 @@ const buyBtn = document.getElementById("buyBtn");
 const statusEl = document.getElementById("status");
 
 function getUser() {
-  const user = tg?.initDataUnsafe?.user;
-  if (!user) return null;
-  return {
-    user_id: user.id,
-    username: user.username || "",
-    first_name: user.first_name || "",
-    last_name: user.last_name || "",
-  };
+  const u = tg?.initDataUnsafe?.user;
+  return u
+    ? {
+        user_id: u.id,
+        username: u.username || "",
+        first_name: u.first_name || "",
+        last_name: u.last_name || "",
+      }
+    : null;
 }
 
 async function checkAccess() {
@@ -144,7 +124,7 @@ async function checkAccess() {
     buyBtn.classList.toggle("hidden", hasFullAccess);
     statusEl.textContent = hasFullAccess ? "Полный доступ" : "Демо-версия";
     return hasFullAccess;
-  } catch (e) {
+  } catch {
     statusEl.textContent = "Ошибка сети";
     return false;
   }
@@ -154,29 +134,25 @@ function effectivePages() {
   return hasFullAccess ? pages : pages.filter((p) => p.type === "demo");
 }
 
-function render(index) {
+function render(i) {
   const list = effectivePages();
   if (!list.length) return;
-  if (index < 0) index = 0;
-  if (index >= list.length) index = list.length - 1;
-  currentIndex = index;
+  if (i < 0) i = 0;
+  if (i >= list.length) i = list.length - 1;
+  currentIndex = i;
   const old = pageContainer.querySelector(".page-inner");
   if (old) {
     old.classList.add("flip-exit");
     setTimeout(() => old.remove(), 300);
   }
-  const wrapper = document.createElement("div");
-  wrapper.className = "page-inner flip-enter";
-  wrapper.innerHTML = list[index].content;
-  pageContainer.appendChild(wrapper);
+  const w = document.createElement("div");
+  w.className = "page-inner flip-enter";
+  w.innerHTML = list[i].content;
+  pageContainer.appendChild(w);
 }
 
-prevBtn.addEventListener("click", () => {
-  render(currentIndex - 1);
-});
-nextBtn.addEventListener("click", () => {
-  render(currentIndex + 1);
-});
+prevBtn.addEventListener("click", () => render(currentIndex - 1));
+nextBtn.addEventListener("click", () => render(currentIndex + 1));
 
 let touchStartX = null;
 pageContainer.addEventListener(
@@ -214,7 +190,7 @@ buyBtn.addEventListener("click", async () => {
     statusEl.textContent = data.ok
       ? "Заявка отправлена. Ожидайте подтверждения."
       : "Ошибка: " + (data.error || "неизвестно");
-  } catch (e) {
+  } catch {
     statusEl.textContent = "Ошибка сети";
   } finally {
     buyBtn.disabled = false;
@@ -223,7 +199,6 @@ buyBtn.addEventListener("click", async () => {
 });
 
 (async function init() {
-  if (onb) onb.classList.add("onb-visible");
   render(0);
   await checkAccess();
 })();
