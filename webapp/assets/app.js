@@ -26,19 +26,26 @@ function show(el) {
   el && el.classList.remove("hidden");
 }
 
+function ensurePhHidden() {
+  if (ph) {
+    ph.classList.remove("show");
+    ph.classList.add("hidden");
+  }
+}
+
 function enterHome() {
   if (onb) onb.classList.remove("onb-visible");
+  ensurePhHidden();
   hide(reader);
   hide(footer);
-  show(home);
-  hide(ph);
   hide(headerEl);
+  show(home);
 }
 
 function enterReader() {
   if (onb) onb.classList.remove("onb-visible");
+  ensurePhHidden();
   hide(home);
-  hide(ph);
   show(headerEl);
   show(reader);
   show(footer);
@@ -46,9 +53,15 @@ function enterReader() {
 }
 
 onbStart?.addEventListener("click", enterHome);
-phBack?.addEventListener("click", () => hide(ph));
-btnListen?.addEventListener("click", () => ph.classList.add("show"));
-btnMerch?.addEventListener("click", () => ph.classList.add("show"));
+phBack?.addEventListener("click", ensurePhHidden);
+btnListen?.addEventListener("click", () => {
+  ph?.classList.add("show");
+  ph?.classList.remove("hidden");
+});
+btnMerch?.addEventListener("click", () => {
+  ph?.classList.add("show");
+  ph?.classList.remove("hidden");
+});
 btnRead?.addEventListener("click", enterReader);
 
 // Book data
@@ -147,13 +160,11 @@ function render(index) {
   if (index < 0) index = 0;
   if (index >= list.length) index = list.length - 1;
   currentIndex = index;
-
   const old = pageContainer.querySelector(".page-inner");
   if (old) {
     old.classList.add("flip-exit");
     setTimeout(() => old.remove(), 300);
   }
-
   const wrapper = document.createElement("div");
   wrapper.className = "page-inner flip-enter";
   wrapper.innerHTML = list[index].content;
@@ -212,7 +223,6 @@ buyBtn.addEventListener("click", async () => {
 });
 
 (async function init() {
-  // всегда показываем онбординг при загрузке
   if (onb) onb.classList.add("onb-visible");
   render(0);
   await checkAccess();
