@@ -108,8 +108,10 @@ async function checkAccess() {
 let BOOK_PAGES = null; // итоговые страницы после пагинации
 
 function getViewportSize() {
-  const rect = pageContainer.getBoundingClientRect();
-  return { width: rect.width, height: rect.height };
+  return {
+    width: pageContainer.clientWidth,
+    height: pageContainer.clientHeight,
+  };
 }
 
 function createMeasureHost() {
@@ -141,7 +143,7 @@ function isTextParagraph(node) {
 }
 
 function splitParagraphByWords(p, host, maxHeight) {
-  const words = p.textContent.split(/(\s+)/); // сохраняем пробелы
+  const words = p.textContent.split(/(\s+)/); // сохраняем пробелы как токены
   const first = document.createElement("p");
   const rest = document.createElement("p");
   let i = 0;
@@ -152,12 +154,8 @@ function splitParagraphByWords(p, host, maxHeight) {
     first.textContent = next;
     i++;
     if (host.scrollHeight > maxHeight) {
-      // откат последнего слова
-      first.textContent = first.textContent.slice(
-        0,
-        -(words[i - 1] || "").length
-      );
-      // остаток
+      // откатываем последнее добавленное слово/пробел
+      first.textContent = first.textContent.slice(0, -words[i - 1].length);
       rest.textContent = words.slice(i - 1).join("");
       break;
     }
@@ -231,17 +229,14 @@ function paginateSectionsToPages(sections) {
       host.appendChild(node);
       if (host.scrollHeight > maxHeight) {
         host.removeChild(node);
-        // если это простой параграф — делим по словам
         if (isTextParagraph(node)) {
           const { first, rest } = splitParagraphByWords(node, host, maxHeight);
-          host.appendChild(first);
+          if (first.textContent) host.appendChild(first);
           pushPageFromHost();
           host.innerHTML = "";
           if (rest) {
-            // добавляем остаток обратно в очередь перед следующими элементами
             queue.unshift(rest.outerHTML);
           }
-          // оставшиеся узлы этой секции тоже вернуть в очередь
           const remaining = Array.from(
             nodes.slice(nodes.indexOf(node) + 1)
           ).map((n) => n.outerHTML || n.textContent);
@@ -249,11 +244,11 @@ function paginateSectionsToPages(sections) {
             queue.unshift(remaining[i]);
           break;
         } else {
-          // сложный блок: завершаем текущую страницу и переносим блок на следующую
+          // переносим текущий блок на новую страницу без потерь
           pushPageFromHost();
           host.appendChild(node);
           if (host.scrollHeight > maxHeight) {
-            // если один элемент всё ещё больше, просто делаем его отдельной страницей
+            // если один блок слишком высокий, помещаем его как отдельную страницу
             pushPageFromHost();
           }
         }
