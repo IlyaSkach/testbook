@@ -166,7 +166,38 @@ function splitParagraphByWords(p, host, maxHeight) {
   return { first, rest: rest.textContent ? rest : null };
 }
 
+function sanitizeSection(html) {
+  const tpl = document.createElement("template");
+  tpl.innerHTML = html;
+  const out = [];
+  function pushText(text) {
+    const t = (text || "").replace(/\s+/g, " ").trim();
+    if (t) out.push(`<p>${t}</p>`);
+  }
+  tpl.content.childNodes.forEach((node) => {
+    if (node.nodeType === 3) {
+      pushText(node.textContent);
+    } else if (node.nodeType === 1) {
+      const tag = node.tagName;
+      if (tag === "IMG") {
+        out.push(node.outerHTML.replace("<img ", '<img class="full-img" '));
+      } else if (tag === "H1" || tag === "H2" || tag === "H3") {
+        out.push(node.outerHTML);
+      } else if (tag === "P") {
+        // Соберём чистый текст из параграфа, игнорируя вложенные стили
+        pushText(node.textContent);
+      } else {
+        // прочие блочные теги превращаем в параграфы по тексту
+        pushText(node.textContent);
+      }
+    }
+  });
+  return out.join("");
+}
+
 function paginateSectionsToPages(sections) {
+  // нормализуем сложный HTML из DOCX, чтобы корректно бить по словам
+  const normalized = sections.map(sanitizeSection);
   const { height } = getViewportSize();
   const maxHeight = height; // учитываем паддинги класса page-inner
   const host = createMeasureHost();
@@ -178,7 +209,7 @@ function paginateSectionsToPages(sections) {
   }
 
   const queue = [];
-  sections.forEach((h) => queue.push(h));
+  normalized.forEach((h) => queue.push(h));
 
   while (queue.length) {
     const sectionHtml = queue.shift();

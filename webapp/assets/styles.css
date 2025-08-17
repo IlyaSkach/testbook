@@ -131,13 +131,14 @@ body,
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  touch-action: pan-x;
+  padding-top: calc(env(safe-area-inset-top));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 .page {
   position: relative;
   width: 100%;
   height: 100%;
-  padding: 20px;
+  padding: 0;
   line-height: 1.6;
   overflow: hidden;
 }
