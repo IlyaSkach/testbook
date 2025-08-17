@@ -269,7 +269,7 @@ function paginateSectionsToPages(sections) {
 async function loadBookPages() {
   try {
     statusEl.textContent = "Загрузка книги...";
-    const res = await fetch("/assets/book.json?v=2", { cache: "force-cache" });
+    const res = await fetch("/assets/book.json?v=3", { cache: "force-cache" });
     dbg("fetch /assets/book.json status", res.status);
     if (!res.ok) throw new Error("no book.json");
     const data = await res.json();
