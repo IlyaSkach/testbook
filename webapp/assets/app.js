@@ -297,7 +297,12 @@ function render(i) {
     setTimeout(() => old.remove(), 300);
   }
   const w = document.createElement("div");
-  w.className = "page-inner flip-enter";
+  // если контент — только одна картинка full-img, уберём внутренние паддинги
+  const onlyFullImg =
+    /^\s*<img[^>]*class=["'][^"']*full-img[^"']*["'][^>]*>\s*$/i.test(
+      list[i].content.trim()
+    );
+  w.className = "page-inner flip-enter" + (onlyFullImg ? " no-pad" : "");
   w.innerHTML = list[i].content;
   pageContainer.appendChild(w);
 }

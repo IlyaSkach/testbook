@@ -355,3 +355,22 @@ body.state-reader .app-footer {
     min-height: 100svh;
   }
 }
+
+/* Доп. правки верстки страниц */
+.page-inner.no-pad {
+  padding: 0;
+}
+.page-inner h1,
+.page-inner h2,
+.page-inner h3 {
+  margin: 0 0 8px;
+}
+.page-inner p {
+  margin: 0 0 10px;
+}
+.page-inner img.full-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
