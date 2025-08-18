@@ -164,6 +164,11 @@ async function initEpub() {
     // Попробуем открыть сохранённую позицию; если её раздела нет — очищаем и открываем начало
     const nav = await book.loaded.navigation.catch(() => null);
     const startHref = nav?.toc?.[0]?.href || undefined;
+    // Выберем первую содержательную главу (пропустим обложку/титул)
+    try {
+      const picked = await selectFirstChapterHref(book, nav);
+      if (picked) FIRST_HREF = picked;
+    } catch (_) {}
     const lastCfi = demoMode ? null : localStorage.getItem(STORE_KEY_CFI);
     let opened = false;
     let initialDisplayed = false;
@@ -183,9 +188,7 @@ async function initEpub() {
       }
     }
     if (!opened) {
-      const target = demoMode
-        ? FIRST_HREF || startHref
-        : startHref || undefined;
+      const target = demoMode ? (FIRST_HREF || startHref) : (startHref || undefined);
       await Promise.race([
         (target ? rendition.display(target) : rendition.display()).then(
           () => (initialDisplayed = true)
@@ -289,7 +292,9 @@ async function initEpub() {
         localStorage.setItem(STORE_KEY_CFI, location?.start?.cfi || "");
       } catch (_) {}
       // Выводим текущий раздел для диагностики синих экранов
-      statusEl.textContent = `Раздел: ${normalizeHref(location?.start?.href || "")}`;
+      statusEl.textContent = `Раздел: ${normalizeHref(
+        location?.start?.href || ""
+      )}`;
     });
     rendition.on("rendered", () => {
       // Если всё хорошо — очищаем статус
@@ -313,7 +318,7 @@ async function initEpub() {
         }));
       }
       FIRST_HREF =
-        book?.spine?.items?.[0]?.href || tocItems?.[0]?.href || FIRST_HREF;
+        FIRST_HREF || book?.spine?.items?.[0]?.href || tocItems?.[0]?.href || null;
       buildToc(tocItems);
     } catch (_) {
       try {
@@ -323,7 +328,7 @@ async function initEpub() {
           label: it?.idref || `Глава ${idx + 1}`,
         }));
         FIRST_HREF =
-          book?.spine?.items?.[0]?.href || fallbackToc?.[0]?.href || FIRST_HREF;
+          FIRST_HREF || book?.spine?.items?.[0]?.href || fallbackToc?.[0]?.href || null;
         buildToc(fallbackToc);
       } catch (_) {}
     }
@@ -505,6 +510,26 @@ function enforceDemo() {
       }
     } catch (_) {}
   });
+}
+
+// Выбираем первую содержательную главу: пропускаем cover/title/toc/nav
+async function selectFirstChapterHref(book, nav) {
+  try {
+    // 1) Сначала пробуем по nav.toc
+    const toc = Array.isArray(nav?.toc) ? nav.toc : [];
+    const good = (href) => href && !/\b(cover|title|toc|nav)\b/i.test(String(href));
+    for (const it of toc) {
+      const href = it?.href || it?.url || it?.canonical;
+      if (good(href)) return href;
+    }
+    // 2) Потом по spine
+    const spine = book?.spine?.items || [];
+    for (const it of spine) {
+      const href = it?.href || it?.url || it?.canonical;
+      if (good(href)) return href;
+    }
+  } catch (_) {}
+  return null;
 }
 
 function showPaywall() {
