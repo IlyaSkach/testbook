@@ -76,18 +76,35 @@ async function main() {
   }
   if (chapters.length === 0) throw new Error("no chapters produced");
   // Сконструируем единый HTML, где каждая глава начинается с <h1>
-  const mkTitle = (idx, html) => {
-    const m = html.match(/<p[^>]*>(.*?)<\/p>/i);
-    const raw = m ? m[1] : `Глава ${idx + 1}`;
-    return (
-      String(raw)
-        .replace(/<[^>]+>/g, "")
-        .trim() || `Глава ${idx + 1}`
-    );
+  const takeTitleAndRest = (idx, html) => {
+    let title = `Глава ${idx + 1}`;
+    let body = html;
+    // 1) Если начинается с <h1/2> — берём его и вырезаем
+    let m = body.match(/^\s*<(h1|h2)[^>]*>([\s\S]*?)<\/\1>\s*/i);
+    if (m) {
+      title = m[2].replace(/<[^>]+>/g, "").trim() || title;
+      body = body.slice(m[0].length);
+      return { title, body };
+    }
+    // 2) Если начинается с <p>ГЛАВА …</p> — берём как заголовок и вырезаем
+    m = body.match(/^\s*<p[^>]*>\s*((?:ГЛАВА|ПРОЛОГ|ЭПИЛОГ)[^<]*)<\/p>\s*/i);
+    if (m) {
+      title = m[1].replace(/<[^>]+>/g, "").trim() || title;
+      body = body.slice(m[0].length);
+      return { title, body };
+    }
+    // 3) Fallback: первая строка абзаца как заголовок, вырежем её
+    m = body.match(/^\s*<p[^>]*>([\s\S]*?)<\/p>\s*/i);
+    if (m) {
+      const raw = m[1].replace(/<[^>]+>/g, "").trim();
+      if (raw) title = raw;
+      body = body.slice(m[0].length);
+    }
+    return { title, body };
   };
   const normalized = chapters.map((h, i) => {
-    const title = mkTitle(i, h);
-    return `\n<h1>${title}</h1>\n${h}`;
+    const { title, body } = takeTitleAndRest(i, h);
+    return `\n<h1>${title}</h1>\n${body}`;
   });
   const combinedPath = path.join(outDir, "combined.html");
   const combined = `<!doctype html><html lang=\"ru\"><head><meta charset=\"utf-8\"></head><body>${normalized.join(
