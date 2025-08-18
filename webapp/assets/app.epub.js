@@ -173,8 +173,23 @@ async function initEpub() {
     } catch (_) {}
     // Найдём явно "ГЛАВА 1" и разрешим её в демо дополнительно
     try {
-      CH1_HREF = await findHrefByHeading(book, nav, /^\s*ГЛАВА\s*1\b/i);
+      CH1_HREF = await findHrefByLabel(nav, /^\s*ГЛАВА\s*1\b/i);
     } catch (_) {}
+    // Если не нашли в TOC по лейблу — попробуем прочитать заголовок из секции
+    if (!CH1_HREF) {
+      try {
+        CH1_HREF = await findHrefByHeading(book, nav, /^\s*ГЛАВА\s*1\b/i);
+      } catch (_) {}
+    }
+    // Если всё ещё нет — разрешим следующий раздел после первой содержательной главы
+    if (!CH1_HREF) {
+      try {
+        const spine = book?.spine?.items || [];
+        const firstN = normalizeHref(FIRST_HREF || "");
+        const idx = spine.findIndex((it) => normalizeHref(it?.href) === firstN);
+        if (idx >= 0 && spine[idx + 1]?.href) CH1_HREF = spine[idx + 1].href;
+      } catch (_) {}
+    }
     // Заполним whitelist демо
     ALLOWED_DEMO_HREFS.clear();
     if (FIRST_HREF) ALLOWED_DEMO_HREFS.add(normalizeHref(FIRST_HREF));
@@ -509,7 +524,10 @@ function enforceDemo() {
       const first = normalizeHref(FIRST_HREF || book?.spine?.items?.[0]?.href);
       if (!first || !curHref) return;
       // Активируем ограничение только после первого открытия первой главы
-      if ((curHref === first || ALLOWED_DEMO_HREFS.has(curHref)) && !demoArmed) {
+      if (
+        (curHref === first || ALLOWED_DEMO_HREFS.has(curHref)) &&
+        !demoArmed
+      ) {
         demoArmed = true;
         return;
       }
@@ -551,22 +569,39 @@ async function selectFirstChapterHref(book, nav) {
   return null;
 }
 
+// Поиск раздела в TOC по тексту лейбла
+async function findHrefByLabel(nav, re) {
+  try {
+    const toc = Array.isArray(nav?.toc) ? nav.toc : [];
+    for (const it of toc) {
+      const lbl = String(it?.label || it?.title || it?.text || "").trim();
+      const href = it?.href || it?.url || it?.canonical;
+      if (re.test(lbl) && href) return href;
+    }
+  } catch (_) {}
+  return null;
+}
+
 // Поиск раздела, где первый h1/h2 соответствует regex
 async function findHrefByHeading(book, nav, re) {
   try {
     const checkList = [];
     const toc = Array.isArray(nav?.toc) ? nav.toc : [];
     if (toc.length) {
-      for (const it of toc) checkList.push(it?.href || it?.url || it?.canonical);
+      for (const it of toc)
+        checkList.push(it?.href || it?.url || it?.canonical);
     }
     const spine = book?.spine?.items || [];
-    for (const it of spine) checkList.push(it?.href || it?.url || it?.canonical);
+    for (const it of spine)
+      checkList.push(it?.href || it?.url || it?.canonical);
     for (const href of checkList) {
       const h = href && String(href);
       if (!h) continue;
       try {
         const sec = await book.load(h);
-        const html = await sec?.render().then((r) => r?.document?.body?.innerHTML || "");
+        const html = await sec
+          ?.render()
+          .then((r) => r?.document?.body?.innerHTML || "");
         const m = html && html.match(/<(h1|h2)[^>]*>([\s\S]*?)<\/\1>/i);
         if (m) {
           const title = m[2].replace(/<[^>]+>/g, "").trim();
