@@ -347,20 +347,37 @@ async function loadBookSections() {
     let sections = [];
     try {
       const results = await Promise.all(
-        CHAPTER_URLS.map((u) =>
-          fetch(`${u}?v=${Date.now()}`, { cache: "no-store" }).then((r) =>
-            r.ok ? r.text() : ""
-          )
-        )
+        CHAPTER_URLS.map(async (u) => {
+          const absUrl = `${u}?v=${Date.now()}`;
+          try {
+            const r = await fetch(absUrl, { cache: "no-store" });
+            if (r.ok) return await r.text();
+          } catch (_) {}
+          // запасной вариант: относительный путь без слеша
+          try {
+            const rel = `${u.replace(/^\//, "")}?v=${Date.now()}`;
+            const r2 = await fetch(rel, { cache: "no-store" });
+            if (r2.ok) return await r2.text();
+          } catch (_) {}
+          return "";
+        })
       );
       sections = results.filter(Boolean);
     } catch (_) {}
     if (!sections.length) sections = DEFAULT_SECTIONS;
     // режим глав: не режем, только санитайзим
-    BOOK_SECTIONS = sections.map(sanitizeSection);
+    BOOK_SECTIONS = sections.map(sanitizeSection).filter((html) => {
+      const textLen = (html || "")
+        .replace(/<img[^>]*>/gi, "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\s+/g, "").length;
+      return textLen > 0;
+    });
+    if (!BOOK_SECTIONS.length)
+      BOOK_SECTIONS = DEFAULT_SECTIONS.map(sanitizeSection);
     // оглавление по разделам
     TOC = buildTocFromSections(BOOK_SECTIONS);
-    statusEl.textContent = hasFullAccess ? "Полный доступ" : "Демо-версия";
+    statusEl.textContent = `Глав загружено: ${BOOK_SECTIONS.length}`;
   } catch (e) {
     dbg("loadBookPages error", e?.message);
     statusEl.textContent = "Ошибка загрузки книги";
