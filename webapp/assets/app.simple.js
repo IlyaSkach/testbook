@@ -32,6 +32,8 @@ const DEFAULT_SECTIONS = [
 // State
 let PAGES = [];
 let currentIndex = 0;
+const params = new URLSearchParams(location.search);
+const FORCED_MODE = params.get("mode");
 
 // Helpers
 function setState(state) {
@@ -274,6 +276,20 @@ btnRead?.addEventListener("click", async () => {
   ph?.classList.remove("show");
   setState("state-reader");
   try {
+    if (FORCED_MODE === "epub") {
+      await initEpubReader();
+      return;
+    }
+    try {
+      const head = await fetch(`/assets/book.epub?v=${Date.now()}`, {
+        method: "HEAD",
+        cache: "no-store",
+      });
+      if (head.ok) {
+        await initEpubReader();
+        return;
+      }
+    } catch (_) {}
     const sections = await loadChapters();
     // быстрый фолбэк: сразу покажем первую секцию, потом допагинируем
     renderHtml(sections[0] || DEFAULT_SECTIONS[0]);
@@ -293,3 +309,39 @@ btnRead?.addEventListener("click", async () => {
 });
 
 setState("state-onboarding");
+
+// EPUB mode
+async function initEpubReader() {
+  statusEl.textContent = "Загрузка EPUB...";
+  try {
+    await loadScript("https://unpkg.com/epubjs/dist/epub.min.js");
+    const src = "/assets/book.epub";
+    const book = window.ePub(src);
+    const { width, height } = getViewportSize();
+    const rendition = book.renderTo("page-container", {
+      width,
+      height,
+      flow: "paginated",
+      spread: "auto",
+      allowScriptedContent: false,
+    });
+    await rendition.display();
+    prevBtn.onclick = () => rendition.prev();
+    nextBtn.onclick = () => rendition.next();
+    rendition.on("rendered", () => {
+      statusEl.textContent = "EPUB";
+    });
+  } catch (e) {
+    statusEl.textContent = "EPUB не найден";
+  }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
