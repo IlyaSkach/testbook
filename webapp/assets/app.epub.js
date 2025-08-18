@@ -348,11 +348,23 @@ async function initEpub() {
     prevBtn.onclick = (e) => {
       e.stopPropagation();
       if (!canNavigate()) return;
+      try {
+        pageContainer.classList.remove("flip-enter", "flip-exit");
+        void pageContainer.offsetWidth;
+        pageContainer.classList.add("flip-exit");
+        setTimeout(() => pageContainer.classList.remove("flip-exit"), 400);
+      } catch (_) {}
       rendition.prev();
     };
     nextBtn.onclick = (e) => {
       e.stopPropagation();
       if (!canNavigate()) return;
+      try {
+        pageContainer.classList.remove("flip-enter", "flip-exit");
+        void pageContainer.offsetWidth;
+        pageContainer.classList.add("flip-enter");
+        setTimeout(() => pageContainer.classList.remove("flip-enter"), 400);
+      } catch (_) {}
       rendition.next();
     };
     rendition.on("relocated", (location) => {
