@@ -58,7 +58,10 @@ btnRead?.addEventListener("click", () => {
   statusEl.textContent = "Загрузка книги...";
   setTimeout(async () => {
     if (!BOOK_SECTIONS) await loadBookSections();
-    renderSection(0);
+    // Режим: страницы с тап-навигацией, без скролла
+    BOOK_PAGES = paginateSectionsToPages(BOOK_SECTIONS);
+    readerEl.classList.remove("mode-chapter");
+    render(0);
   }, 0);
 });
 
@@ -217,7 +220,8 @@ function sanitizeSection(html) {
     } else if (node.nodeType === 1) {
       const tag = node.tagName;
       if (tag === "IMG") {
-        out.push(node.outerHTML.replace("<img ", '<img class="full-img" '));
+        // Картинок не будет: пропускаем
+        return;
       } else if (tag === "H1" || tag === "H2" || tag === "H3") {
         out.push(node.outerHTML);
       } else if (tag === "P") {
