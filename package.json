@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "bot": "node bot/bot.js",
-    "import:docx": "node scripts/docx-to-sections.js"
+    "import:docx": "node scripts/docx-to-sections.js",
+    "extract:chapters": "node scripts/extract-chapters.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
