@@ -105,6 +105,9 @@ const DEFAULT_SECTIONS = [
   ].join(""),
 ];
 
+// Компоненты глав: список файлов-фрагментов HTML
+const CHAPTER_URLS = ["/assets/chapters/ch1.html", "/assets/chapters/ch2.html"];
+
 function getUser() {
   const u = tg?.initDataUnsafe?.user;
   return u
@@ -314,20 +317,17 @@ function paginateSectionsToPages(sections) {
 async function loadBookSections() {
   try {
     statusEl.textContent = "Загрузка книги...";
-    // Попробуем загрузить book.json; если его нет, используем встроенную первую главу
+    // Пытаемся загрузить главы как компоненты (файлы HTML)
     let sections = [];
     try {
-      const res = await fetch(`/assets/book.json?v=${Date.now()}`, {
-        cache: "no-store",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        sections = Array.isArray(data.sections)
-          ? data.sections
-          : Array.isArray(data.pages)
-          ? data.pages.map((p) => (typeof p === "string" ? p : p.content))
-          : [];
-      }
+      const results = await Promise.all(
+        CHAPTER_URLS.map((u) =>
+          fetch(`${u}?v=${Date.now()}`, { cache: "no-store" }).then((r) =>
+            r.ok ? r.text() : ""
+          )
+        )
+      );
+      sections = results.filter(Boolean);
     } catch (_) {}
     if (!sections.length) sections = DEFAULT_SECTIONS;
     // режим глав: не режем, только санитайзим
