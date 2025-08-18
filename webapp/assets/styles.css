@@ -438,3 +438,9 @@ body.state-reader .app-footer {
   font-size: clamp(17px, 2.2vw, 20px);
   line-height: 1.65;
 }
+
+/* Режим главы: разрешаем скролл внутри контейнера */
+.page-inner.chapter {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}

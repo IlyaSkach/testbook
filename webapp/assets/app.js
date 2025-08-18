@@ -57,14 +57,17 @@ btnRead?.addEventListener("click", () => {
   // показываем «загрузка», а затем в следующем тике грузим книгу
   statusEl.textContent = "Загрузка книги...";
   setTimeout(async () => {
-    if (!BOOK_PAGES) await loadBookPages();
-    render(0);
+    if (!BOOK_SECTIONS) await loadBookSections();
+    renderSection(0);
   }, 0);
 });
 
 tocBtn?.addEventListener("click", () => {
-  if (!BOOK_PAGES) return;
-  if (!TOC || TOC.length === 0) TOC = buildToc(BOOK_PAGES);
+  if (!BOOK_SECTIONS && !BOOK_PAGES) return;
+  if (!TOC || TOC.length === 0) {
+    if (BOOK_SECTIONS) TOC = buildTocFromSections(BOOK_SECTIONS);
+    else TOC = buildToc(BOOK_PAGES);
+  }
   openToc();
 });
 tocClose?.addEventListener("click", () => tocEl.classList.remove("show"));
@@ -79,6 +82,7 @@ const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const buyBtn = document.getElementById("buyBtn");
 let TOC = [];
+let BOOK_SECTIONS = null; // режим чтения по главам
 
 function getUser() {
   const u = tg?.initDataUnsafe?.user;
@@ -285,7 +289,7 @@ function paginateSectionsToPages(sections) {
   return out;
 }
 
-async function loadBookPages() {
+async function loadBookSections() {
   try {
     statusEl.textContent = "Загрузка книги...";
     const res = await fetch(`/assets/book.json?v=${Date.now()}`, {
@@ -294,32 +298,24 @@ async function loadBookPages() {
     dbg("fetch /assets/book.json status", res.status);
     if (!res.ok) throw new Error("no book.json");
     const data = await res.json();
-    const sections = Array.isArray(data.pages)
-      ? data.pages.map((p) => (typeof p === "string" ? p : p.content))
-      : Array.isArray(data.sections)
+    const sections = Array.isArray(data.sections)
       ? data.sections
+      : Array.isArray(data.pages)
+      ? data.pages.map((p) => (typeof p === "string" ? p : p.content))
       : [];
     dbg("sections length", sections.length);
     if (!sections.length) throw new Error("empty book");
-    BOOK_PAGES = paginateSectionsToPages(sections);
-    // построение оглавления на основе заголовков внутри страниц
-    TOC = buildToc(BOOK_PAGES);
+    // режим глав: не режем, только санитайзим
+    BOOK_SECTIONS = sections.map(sanitizeSection);
+    // оглавление по разделам
+    TOC = buildTocFromSections(BOOK_SECTIONS);
     statusEl.textContent = hasFullAccess ? "Полный доступ" : "Демо-версия";
   } catch (e) {
     dbg("loadBookPages error", e?.message);
     statusEl.textContent = "Ошибка загрузки книги";
-    // fallback: короткая демо
-    BOOK_PAGES = [
-      {
-        type: "demo",
-        content:
-          '<h2>Глава 1. Пролог</h2><p>Демо‑страница 1</p><img class="full-img" src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80" />',
-      },
-      {
-        type: "demo",
-        content: "<h2>Глава 2. Предисловие</h2><p>Демо‑страница 2</p>",
-      },
-      { type: "full", content: "<h2>Глава 3</h2><p>Полная часть</p>" },
+    BOOK_SECTIONS = [
+      '<h2>Глава 1. Пролог</h2><p>Демо‑текст</p><img class="full-img" src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80" />',
+      "<h2>Глава 2. Предисловие</h2><p>Демо‑текст 2</p>",
     ];
   }
 }
@@ -339,6 +335,23 @@ function buildToc(pages) {
   return toc;
 }
 
+function buildTocFromSections(sections) {
+  const toc = [];
+  const headingRegex = /<(h[1-3])[^>]*>(.*?)<\/\1>/i;
+  for (let i = 0; i < sections.length; i++) {
+    const html = sections[i] || "";
+    const m = html.match(headingRegex);
+    if (m) {
+      const level = m[1];
+      const title = m[2].replace(/<[^>]+>/g, "").trim();
+      if (title) toc.push({ title, level, pageIndex: i });
+    } else {
+      toc.push({ title: `Глава ${i + 1}`, level: "h2", pageIndex: i });
+    }
+  }
+  return toc;
+}
+
 function openToc() {
   if (!TOC || !TOC.length) return;
   tocList.innerHTML = "";
@@ -348,25 +361,26 @@ function openToc() {
     row.innerHTML = `
       <span class="toc-level">${item.level.toUpperCase()}</span>
       <span class="toc-title">${item.title}</span>
-      <span class="toc-page">стр. ${item.pageIndex + 1}</span>
+      <span class="toc-page">гл. ${item.pageIndex + 1}</span>
     `;
     row.addEventListener("click", () => {
       tocEl.classList.remove("show");
-      render(item.pageIndex);
+      renderSection(item.pageIndex);
     });
     tocList.appendChild(row);
   });
   tocEl.classList.add("show");
 }
 
-function effectivePages() {
-  return hasFullAccess
-    ? BOOK_PAGES
-    : (BOOK_PAGES || []).filter((p) => p.type === "demo");
+function effectiveSections() {
+  if (!BOOK_SECTIONS) return [];
+  if (hasFullAccess) return BOOK_SECTIONS;
+  const DEMO_SECTIONS = 2;
+  return BOOK_SECTIONS.slice(0, DEMO_SECTIONS);
 }
 
-function render(i) {
-  const list = effectivePages();
+function renderSection(i) {
+  const list = effectiveSections();
   if (!list || !list.length) {
     dbg("render: no pages");
     return;
@@ -374,25 +388,24 @@ function render(i) {
   if (i < 0) i = 0;
   if (i >= list.length) i = list.length - 1;
   currentIndex = i;
-  dbg("render page", i + 1, "of", list.length);
+  dbg("render section", i + 1, "of", list.length);
   const old = pageContainer.querySelector(".page-inner");
   if (old) {
     old.classList.add("flip-exit");
     setTimeout(() => old.remove(), 300);
   }
   const w = document.createElement("div");
-  // если контент — только одна картинка full-img, уберём внутренние паддинги
+  const html = list[i].trim();
   const onlyFullImg =
-    /^\s*<img[^>]*class=["'][^"']*full-img[^"']*["'][^>]*>\s*$/i.test(
-      list[i].content.trim()
-    );
-  w.className = "page-inner flip-enter" + (onlyFullImg ? " no-pad" : "");
-  w.innerHTML = list[i].content;
+    /^\s*<img[^>]*class=["'][^"']*full-img[^"']*["'][^>]*>\s*$/i.test(html);
+  w.className =
+    "page-inner flip-enter" + (onlyFullImg ? " no-pad" : " chapter");
+  w.innerHTML = html;
   pageContainer.appendChild(w);
 }
 
-prevBtn.addEventListener("click", () => render(currentIndex - 1));
-nextBtn.addEventListener("click", () => render(currentIndex + 1));
+prevBtn.addEventListener("click", () => renderSection(currentIndex - 1));
+nextBtn.addEventListener("click", () => renderSection(currentIndex + 1));
 
 let touchStartX = null;
 pageContainer.addEventListener(
@@ -406,8 +419,8 @@ pageContainer.addEventListener("touchend", (e) => {
   if (touchStartX == null) return;
   const dx = e.changedTouches[0].clientX - touchStartX;
   if (Math.abs(dx) > 40) {
-    if (dx < 0) render(currentIndex + 1);
-    else render(currentIndex - 1);
+    if (dx < 0) renderSection(currentIndex + 1);
+    else renderSection(currentIndex - 1);
   }
   touchStartX = null;
 });
