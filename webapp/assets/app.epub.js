@@ -194,6 +194,14 @@ async function initEpub() {
     ALLOWED_DEMO_HREFS.clear();
     if (FIRST_HREF) ALLOWED_DEMO_HREFS.add(normalizeHref(FIRST_HREF));
     if (CH1_HREF) ALLOWED_DEMO_HREFS.add(normalizeHref(CH1_HREF));
+    // Авто-добавим следующий раздел после FIRST_HREF
+    try {
+      const spine = book?.spine?.items || [];
+      const idx = spine.findIndex((it) => normalizeHref(it?.href) === normalizeHref(FIRST_HREF));
+      if (idx >= 0 && spine[idx + 1]?.href) {
+        ALLOWED_DEMO_HREFS.add(normalizeHref(spine[idx + 1].href));
+      }
+    } catch (_) {}
     const lastCfi = demoMode ? null : localStorage.getItem(STORE_KEY_CFI);
     let opened = false;
     let initialDisplayed = false;
@@ -509,7 +517,8 @@ function buildToc(items) {
 function normalizeHref(href) {
   if (!href) return "";
   try {
-    return String(href).split("#")[0];
+    const s = String(href);
+    return s.split("#")[0].split("?")[0];
   } catch (_) {
     return String(href || "");
   }
