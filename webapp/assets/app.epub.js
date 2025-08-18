@@ -122,13 +122,34 @@ async function initEpub() {
         setTimeout(() => rej(new Error("book ready timeout")), 8000)
       ),
     ]);
+    // Попробуем открыть сохранённую позицию; если её раздела нет — очищаем и открываем начало
+    const nav = await book.loaded.navigation.catch(() => null);
+    const startHref = nav?.toc?.[0]?.href || undefined;
     const lastCfi = localStorage.getItem(STORE_KEY_CFI);
-    await Promise.race([
-      lastCfi ? rendition.display(lastCfi) : rendition.display(),
-      new Promise((_, rej) =>
-        setTimeout(() => rej(new Error("display timeout")), 8000)
-      ),
-    ]);
+    let opened = false;
+    if (lastCfi) {
+      try {
+        await Promise.race([
+          rendition.display(lastCfi),
+          new Promise((_, rej) =>
+            setTimeout(() => rej(new Error("display timeout")), 8000)
+          ),
+        ]);
+        opened = true;
+      } catch (_) {
+        try {
+          localStorage.removeItem(STORE_KEY_CFI);
+        } catch (_) {}
+      }
+    }
+    if (!opened) {
+      await Promise.race([
+        startHref ? rendition.display(startHref) : rendition.display(),
+        new Promise((_, rej) =>
+          setTimeout(() => rej(new Error("display timeout")), 8000)
+        ),
+      ]);
+    }
 
     // Тема: увеличенный шрифт и корректные отступы, запрет выхода за край
     rendition.themes.register("tg", {
