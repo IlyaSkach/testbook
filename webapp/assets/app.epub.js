@@ -101,6 +101,8 @@ async function initEpub() {
     }
 
     // 4) Рендер
+    // Для EPUB зададим высоту равной видимой области без футера,
+    // а ширину — полной ширине контейнера
     const { width, height } = getViewportSize();
     pageContainer.innerHTML = "";
     // ВАЖНО: передаём сам Blob, иначе ePub.js считает, что это папка и пытается загрузить /META-INF/container.xml
@@ -139,7 +141,8 @@ async function initEpub() {
         WebkitHyphens: "auto",
         hyphens: "auto",
         boxSizing: "border-box",
-        padding: "16px 16px 24px 16px",
+        padding: "12px 16px 16px 16px",
+        maxWidth: "100%",
       },
       p: { margin: "0 0 1em" },
       img: { maxWidth: "100% !important", height: "auto !important" },
