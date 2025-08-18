@@ -40,6 +40,7 @@ const buyBtn = document.getElementById("buyBtn");
 let PUBLIC_CFG = { support_username: "SkIlyaA", price_rub: 555 };
 const STORE_KEY_FONT = "epub_font_percent";
 const STORE_KEY_CFI = "epub_last_cfi";
+const STORE_KEY_HREF = "epub_last_href";
 
 function setState(state) {
   document.body.classList.remove(
@@ -133,7 +134,8 @@ async function initEpub() {
     } catch (_) {}
     // Загружаем файл с кэшем браузера (ускоряет повторные открытия)
     // Пробуем сначала из кэша, параллельно подгружаем обновление (stale-while-revalidate вручную)
-    let res = await caches?.open?.("book-cache")
+    let res = await caches
+      ?.open?.("book-cache")
       ?.then((c) => c.match("/assets/book.epub"))
       .catch(() => null);
     if (!res) {
@@ -228,9 +230,20 @@ async function initEpub() {
         ALLOWED_DEMO_HREFS.add(normalizeHref(spine[idx + 1].href));
       }
     } catch (_) {}
-    const lastCfi = demoMode ? null : localStorage.getItem(STORE_KEY_CFI);
+    let lastCfi = localStorage.getItem(STORE_KEY_CFI);
+    let lastHrefStored = localStorage.getItem(STORE_KEY_HREF) || "";
+    const lastHrefNorm = normalizeHref(lastHrefStored);
     let opened = false;
     let initialDisplayed = false;
+    // Если демо — разрешим резюмирование только в рамках доступных глав
+    if (demoMode && lastCfi) {
+      const firstNorm = normalizeHref(FIRST_HREF || book?.spine?.items?.[0]?.href);
+      const allowedNow = new Set([firstNorm]);
+      // если поздее добавим ALLOWED_DEMO_HREFS — дополним после инициализации TOC
+      if (!lastHrefNorm || (!allowedNow.has(lastHrefNorm))) {
+        lastCfi = null;
+      }
+    }
     if (lastCfi) {
       try {
         await Promise.race([
@@ -243,6 +256,7 @@ async function initEpub() {
       } catch (_) {
         try {
           localStorage.removeItem(STORE_KEY_CFI);
+          localStorage.removeItem(STORE_KEY_HREF);
         } catch (_) {}
       }
     }
@@ -385,6 +399,10 @@ async function initEpub() {
     rendition.on("relocated", (location) => {
       try {
         localStorage.setItem(STORE_KEY_CFI, location?.start?.cfi || "");
+        localStorage.setItem(
+          STORE_KEY_HREF,
+          normalizeHref(location?.start?.href || "")
+        );
       } catch (_) {}
     });
 
