@@ -81,7 +81,6 @@ async function initEpub() {
     });
     if (!res.ok) throw new Error("epub fetch failed");
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
 
     // 3) Грузим ePub.js (локально, затем CDN)
     try {
@@ -93,7 +92,8 @@ async function initEpub() {
     // 4) Рендер
     const { width, height } = getViewportSize();
     pageContainer.innerHTML = "";
-    book = window.ePub(url);
+    // ВАЖНО: передаём сам Blob, иначе ePub.js считает, что это папка и пытается загрузить /META-INF/container.xml
+    book = window.ePub(blob);
     rendition = book.renderTo("page-container", {
       width,
       height,
