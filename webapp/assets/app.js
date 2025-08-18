@@ -57,21 +57,30 @@ btnRead?.addEventListener("click", () => {
   // показываем «загрузка», а затем в следующем тике грузим книгу
   statusEl.textContent = "Загрузка книги...";
   setTimeout(async () => {
-    if (!BOOK_SECTIONS) await loadBookSections();
-    // подождём раскладки, чтобы размеры контейнера были корректны
-    await new Promise((r) => requestAnimationFrame(r));
     try {
-      // Режим: страницы с тап-навигацией, без скролла
-      BOOK_PAGES = paginateSectionsToPages(BOOK_SECTIONS || []);
+      if (!BOOK_SECTIONS) await loadBookSections();
+      if (!Array.isArray(BOOK_SECTIONS) || BOOK_SECTIONS.length === 0) {
+        BOOK_SECTIONS = DEFAULT_SECTIONS;
+      }
+      // подождём раскладки, чтобы размеры контейнера были корректны
+      await new Promise((r) => requestAnimationFrame(r));
+      try {
+        // Режим: страницы с тап-навигацией, без скролла
+        BOOK_PAGES = paginateSectionsToPages(BOOK_SECTIONS || []);
+      } catch (e) {
+        dbg("paginate error", e?.message);
+        BOOK_PAGES = (BOOK_SECTIONS || []).map((html, i) => ({
+          type: i < 2 ? "demo" : "full",
+          content: html,
+        }));
+      }
+      readerEl.classList.remove("mode-chapter");
+      render(0);
+      statusEl.textContent = hasFullAccess ? "Полный доступ" : "Демо-версия";
     } catch (e) {
-      dbg("paginate error", e?.message);
-      BOOK_PAGES = (BOOK_SECTIONS || []).map((html, i) => ({
-        type: i < 2 ? "demo" : "full",
-        content: html,
-      }));
+      dbg("open reader error", e?.message);
+      statusEl.textContent = "Ошибка загрузки";
     }
-    readerEl.classList.remove("mode-chapter");
-    render(0);
   }, 0);
 });
 
