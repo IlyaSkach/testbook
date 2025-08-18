@@ -28,6 +28,11 @@ const tocClose = document.getElementById("tocClose");
 const tocList = document.getElementById("tocList");
 const fontIncBtn = document.getElementById("fontInc");
 const fontDecBtn = document.getElementById("fontDec");
+const paywallEl = document.getElementById("paywall");
+const payBuyBtn = document.getElementById("payBuy");
+const payCloseBtn = document.getElementById("payClose");
+const buyBtn = document.getElementById("buyBtn");
+let PUBLIC_CFG = { support_username: "SkIlyaA", price_rub: 555 };
 const STORE_KEY_FONT = "epub_font_percent";
 const STORE_KEY_CFI = "epub_last_cfi";
 
@@ -66,10 +71,33 @@ function loadScript(src) {
 
 let rendition = null;
 let book = null;
+let hasFullAccess = false;
+let demoMode = true; // если нет доступа — показываем только первую главу
+let FIRST_HREF = null;
 
 async function initEpub() {
   statusEl.textContent = "Загрузка EPUB...";
   try {
+    // 1) Получим публичную конфигурацию (цена и username) и проверим доступ
+    try {
+      const cfgRes = await fetch("/.netlify/functions/public-config", { cache: "no-store" });
+      const cfg = await cfgRes.json();
+      if (cfg?.ok) PUBLIC_CFG = cfg;
+      const priceText = document.getElementById("priceText");
+      if (priceText) priceText.textContent = `Купить за ${PUBLIC_CFG.price_rub} ₽`;
+    } catch (_) {}
+    try {
+      const initDataUnsafe = tg?.initDataUnsafe;
+      const user = initDataUnsafe?.user || null;
+      const resp = await fetch("/.netlify/functions/check-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user }),
+      });
+      const d = await resp.json();
+      hasFullAccess = !!d?.hasFullAccess;
+      demoMode = !hasFullAccess;
+    } catch (_) {}
     // Загружаем файл (без предварительного HEAD — в WebView бывает заблокирован)
     const res = await fetch(`/assets/book.epub?v=${Date.now()}`, {
       cache: "no-store",
@@ -247,6 +275,7 @@ async function initEpub() {
           label: it?.idref || `Глава ${idx + 1}`,
         }));
       }
+      FIRST_HREF = (book?.spine?.items?.[0]?.href) || tocItems?.[0]?.href || FIRST_HREF;
       buildToc(tocItems);
     } catch (_) {
       try {
@@ -255,6 +284,7 @@ async function initEpub() {
           href: it?.href,
           label: it?.idref || `Глава ${idx + 1}`,
         }));
+        FIRST_HREF = (book?.spine?.items?.[0]?.href) || fallbackToc?.[0]?.href || FIRST_HREF;
         buildToc(fallbackToc);
       } catch (_) {}
     }
@@ -270,6 +300,11 @@ async function initEpub() {
     });
 
     statusEl.textContent = "EPUB";
+    // Применим демо-ограничение
+    enforceDemo();
+    // Показ кнопки покупки только в демо
+    if (buyBtn) buyBtn.classList.toggle("hidden", !demoMode);
+    buyBtn?.addEventListener("click", (e) => { e.preventDefault(); showPaywall(); });
     if (createdUrl) {
       // освободим URL позже
       setTimeout(() => URL.revokeObjectURL(createdUrl), 15000);
@@ -388,6 +423,57 @@ function buildToc(items) {
   tocBtn?.addEventListener("click", () => tocEl.classList.add("show"));
   tocClose?.addEventListener("click", () => tocEl.classList.remove("show"));
 }
+
+// DEMO: перехват переходов между главами и показ пейволла
+function enforceDemo() {
+  if (!demoMode) return;
+  // Разрешаем только первый spine item (первая глава) — блокируем переход вперёд
+  rendition.on("relocated", (location) => {
+    try {
+      const startIndex = location?.start?.index || 0;
+      const atEnd = location?.atEnd || false;
+      const spineIndex = location?.start?.index || 0;
+      if (spineIndex > 0 || atEnd) {
+        // Вернём читателя на первую главу и покажем пейволл
+        const first = book?.spine?.items?.[0]?.href;
+        if (first) rendition.display(first);
+        showPaywall();
+      }
+    } catch (_) {}
+  });
+}
+
+function showPaywall() {
+  paywallEl?.classList.add("show");
+}
+function hidePaywall() {
+  paywallEl?.classList.remove("show");
+}
+
+payCloseBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  hidePaywall();
+});
+
+payBuyBtn?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  try {
+    const initDataUnsafe = tg?.initDataUnsafe;
+    const user = initDataUnsafe?.user || null;
+    await fetch("/.netlify/functions/create-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user }),
+    });
+  } catch (_) {}
+  // Откроем ЛС саппорта (username из конфига)
+  const un = PUBLIC_CFG.support_username || "SkIlyaA";
+  try {
+    tg?.openTelegramLink?.(`https://t.me/${un}`);
+  } catch (_) {
+    window.open(`https://t.me/${un}`, "_blank");
+  }
+});
 
 // Touch swipe
 let touchStartX = null;
