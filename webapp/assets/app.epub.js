@@ -84,7 +84,7 @@ async function initEpub() {
       cache: "no-store",
     });
     if (!res.ok) throw new Error("epub fetch failed");
-    const blob = await res.blob();
+    const buf = await res.arrayBuffer();
 
     // 3) Грузим зависимости: JSZip, затем ePub.js (локально, затем CDN)
     try {
@@ -105,8 +105,8 @@ async function initEpub() {
     // а ширину — полной ширине контейнера
     const { width, height } = getViewportSize();
     pageContainer.innerHTML = "";
-    // ВАЖНО: передаём сам Blob, иначе ePub.js считает, что это папка и пытается загрузить /META-INF/container.xml
-    book = window.ePub(blob);
+    // Передаём ArrayBuffer напрямую в ePub.js
+    book = window.ePub(buf);
     rendition = book.renderTo("page-container", {
       width,
       height,
@@ -132,7 +132,12 @@ async function initEpub() {
 
     // Тема: увеличенный шрифт и корректные отступы, запрет выхода за край
     rendition.themes.register("tg", {
-      "html, body": { margin: 0, padding: 0, background: "transparent" },
+      "html, body": {
+        margin: 0,
+        padding: 0,
+        background: "transparent",
+        overflowX: "hidden",
+      },
       body: {
         fontSize: "18px",
         lineHeight: "1.6",
@@ -145,7 +150,12 @@ async function initEpub() {
         maxWidth: "100%",
       },
       p: { margin: "0 0 1em" },
-      img: { maxWidth: "100% !important", height: "auto !important" },
+      img: {
+        maxWidth: "100% !important",
+        height: "auto !important",
+        display: "block",
+      },
+      svg: { maxWidth: "100% !important" },
     });
     rendition.themes.select("tg");
     // Доп. масштаб
@@ -154,7 +164,7 @@ async function initEpub() {
       10
     );
     if (Number.isNaN(currentFontPercent)) currentFontPercent = 112;
-    rendition.themes.fontSize(currentFontPercent + "%");
+    rendition.themes.override("font-size", currentFontPercent + "%", true);
 
     // Контролы шрифта
     function applyFont() {
@@ -162,16 +172,20 @@ async function initEpub() {
         max = 160;
       if (currentFontPercent < min) currentFontPercent = min;
       if (currentFontPercent > max) currentFontPercent = max;
-      rendition.themes.fontSize(currentFontPercent + "%");
+      rendition.themes.override("font-size", currentFontPercent + "%", true);
       try {
         localStorage.setItem(STORE_KEY_FONT, String(currentFontPercent));
       } catch (_) {}
     }
-    fontIncBtn?.addEventListener("click", () => {
+    fontIncBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       currentFontPercent += 6;
       applyFont();
     });
-    fontDecBtn?.addEventListener("click", () => {
+    fontDecBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       currentFontPercent -= 6;
       applyFont();
     });
