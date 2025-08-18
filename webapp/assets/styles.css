@@ -140,11 +140,7 @@ body,
   font-weight: 700;
 }
 
-.segmented {
-  display: flex;
-  gap: 6px;
-  margin-left: 8px;
-}
+.segmented { display: none; }
 .seg-btn {
   background: #1f2a44;
   color: #fff;
@@ -239,8 +235,12 @@ body,
   line-height: 1.6;
   overflow: hidden;
 }
-.swipe-overlay{
-  position:absolute; inset:0; z-index:600; background:transparent; display:none;
+.swipe-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 600;
+  background: transparent;
+  display: none;
 }
 .page-inner {
   position: absolute;

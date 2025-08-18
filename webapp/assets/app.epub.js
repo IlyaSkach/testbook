@@ -20,7 +20,7 @@ const footerEl = document.querySelector(".app-footer");
 const readerEl = document.getElementById("reader");
 const statusEl = document.getElementById("status");
 const pageContainer = document.getElementById("page-container");
-const swipeOverlay = document.getElementById("swipeOverlay");
+const swipeOverlay = null;
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const tocBtn = document.getElementById("tocBtn");
@@ -30,8 +30,9 @@ const tocList = document.getElementById("tocList");
 const fontIncBtn = document.getElementById("fontInc");
 const fontDecBtn = document.getElementById("fontDec");
 const accessLabel = document.getElementById("accessLabel");
-const navModeTapBtn = document.getElementById("navModeTap");
-const navModeSwipeBtn = document.getElementById("navModeSwipe");
+// Свайп-режим временно отключён
+const navModeTapBtn = null;
+const navModeSwipeBtn = null;
 const paywallEl = document.getElementById("paywall");
 const payBuyBtn = document.getElementById("payBuy");
 const payCloseBtn = document.getElementById("payClose");
@@ -85,8 +86,8 @@ const ALLOWED_DEMO_HREFS = new Set();
 let demoTapCount = 0;
 const DEMO_TAP_LIMIT = 10; // максимум тапов в демо
 let demoBlockedByTapLimit = false;
-const STORE_KEY_NAV = "nav_mode"; // tap | swipe
-let navMode = localStorage.getItem(STORE_KEY_NAV) || "tap";
+const STORE_KEY_NAV = "nav_mode"; // tap | swipe (фиксируем tap)
+let navMode = "tap";
 
 // Глобальная проверка на возможность навигации (с учётом демо-ограничений)
 function canNavigate() {
@@ -689,7 +690,7 @@ payBuyBtn?.addEventListener("click", async (e) => {
 
 // Touch swipe
 let touchStartX = null;
-const overlayTarget = swipeOverlay || pageContainer;
+const overlayTarget = pageContainer;
 overlayTarget.addEventListener(
   "touchstart",
   (e) => {
@@ -769,24 +770,9 @@ btnRead?.addEventListener("click", async () => {
 });
 
 function updateNavModeUI() {
-  if (navModeTapBtn)
-    navModeTapBtn.classList.toggle("active", navMode === "tap");
-  if (navModeSwipeBtn)
-    navModeSwipeBtn.classList.toggle("active", navMode === "swipe");
-  if (prevBtn) prevBtn.style.display = navMode === "tap" ? "block" : "none";
-  if (nextBtn) nextBtn.style.display = navMode === "tap" ? "block" : "none";
-  if (swipeOverlay) swipeOverlay.style.display = navMode === "swipe" ? "block" : "none";
+  if (prevBtn) prevBtn.style.display = "block";
+  if (nextBtn) nextBtn.style.display = "block";
 }
 updateNavModeUI();
-navModeTapBtn?.addEventListener("click", () => {
-  navMode = "tap";
-  localStorage.setItem(STORE_KEY_NAV, navMode);
-  updateNavModeUI();
-});
-navModeSwipeBtn?.addEventListener("click", () => {
-  navMode = "swipe";
-  localStorage.setItem(STORE_KEY_NAV, navMode);
-  updateNavModeUI();
-});
 
 setState("state-onboarding");
