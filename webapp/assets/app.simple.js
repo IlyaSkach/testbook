@@ -1,8 +1,12 @@
 // Simple reader: loads chapters as HTML fragments, paginates to full-screen pages, tap to navigate
 
 const tg = window.Telegram?.WebApp;
-tg?.expand?.();
-tg?.disableVerticalSwipes?.();
+try {
+  tg?.expand?.();
+} catch (_) {}
+try {
+  tg?.disableVerticalSwipes?.();
+} catch (_) {}
 
 document.addEventListener("contextmenu", (e) => e.preventDefault());
 
@@ -181,22 +185,33 @@ function paginateSectionsToPages(sections) {
 
 async function loadChapters() {
   statusEl.textContent = "Загрузка книги...";
-  const results = await Promise.all(
-    CHAPTER_URLS.map(async (u) => {
-      try {
-        const r = await fetch(`${u}?v=${Date.now()}`, { cache: "no-store" });
-        if (r.ok) return await r.text();
-      } catch (_) {}
-      try {
-        const r2 = await fetch(`${u.replace(/^\//, "")}?v=${Date.now()}`, {
-          cache: "no-store",
+  function fetchWithTimeout(url, ms = 4000) {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(""), ms);
+      fetch(url, { cache: "no-store" })
+        .then((r) => (r.ok ? r.text() : ""))
+        .then((txt) => {
+          clearTimeout(timer);
+          resolve(txt || "");
+        })
+        .catch(() => {
+          clearTimeout(timer);
+          resolve("");
         });
-        if (r2.ok) return await r2.text();
-      } catch (_) {}
-      return "";
-    })
-  );
-  const sections = results.filter(Boolean);
+    });
+  }
+  const sections = [];
+  for (let i = 0; i < CHAPTER_URLS.length; i++) {
+    const u = CHAPTER_URLS[i];
+    statusEl.textContent = `Загрузка главы ${i + 1}/${CHAPTER_URLS.length}...`;
+    const abs = `${location.origin}${u}?v=${Date.now()}`;
+    let txt = await fetchWithTimeout(abs, 4000);
+    if (!txt) {
+      const rel = `${u.replace(/^\//, "")}?v=${Date.now()}`;
+      txt = await fetchWithTimeout(rel, 3000);
+    }
+    if (txt && txt.trim()) sections.push(txt);
+  }
   return sections.length ? sections : DEFAULT_SECTIONS;
 }
 
