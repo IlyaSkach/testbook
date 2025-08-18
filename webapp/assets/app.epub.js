@@ -171,11 +171,13 @@ async function initEpub() {
         padding: "12px 16px 16px 16px",
         maxWidth: "100%",
       },
+      // Сброс любых внутренних увеличений шрифта, кроме заголовков
+      "body *": { fontSize: "inherit !important", color: "#e6e6e6" },
+      h1: { fontSize: "1.4em !important", color: "#ffffff" },
+      h2: { fontSize: "1.3em !important", color: "#ffffff" },
+      h3: { fontSize: "1.2em !important", color: "#ffffff" },
       p: { margin: "0 0 1em", color: "#e6e6e6 !important" },
       li: { color: "#e6e6e6 !important" },
-      h1: { color: "#ffffff !important" },
-      h2: { color: "#ffffff !important" },
-      h3: { color: "#ffffff !important" },
       a: { color: "#a3d3ff !important" },
       img: {
         maxWidth: "100% !important",
@@ -289,6 +291,23 @@ function buildToc(items) {
   function hrefOf(it) {
     return it?.href || it?.url || it?.canonical || it?.href?.href || null;
   }
+  async function improveLabels(list) {
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+      const it = list[i];
+      let label = it.label;
+      try {
+        const sec = await book.load(it.href);
+        const html = await sec
+          ?.render()
+          .then((r) => r?.document?.body?.innerHTML || "");
+        const m = html && html.match(/<(h1|h2)[^>]*>([\s\S]*?)<\/\1>/i);
+        if (m) label = m[2].replace(/<[^>]+>/g, "").trim() || label;
+      } catch (_) {}
+      out.push({ href: it.href, label: label || `Глава ${i + 1}` });
+    }
+    return out;
+  }
   // Если nav пуст — собираем из spine
   let list = Array.isArray(items) ? items.slice() : [];
   if (!list.length && book?.spine?.items?.length) {
@@ -302,24 +321,32 @@ function buildToc(items) {
     .filter((it) => !!it.href);
   if (!list.length) return;
   tocList.innerHTML = "";
-  list.forEach((it, idx) => {
-    const row = document.createElement("button");
-    row.className = "toc-item";
-    row.innerHTML = `
-      <span class="toc-level">${String(idx + 1).padStart(2, "0")}</span>
-      <span class="toc-title">${it.label}</span>
-      <span class="toc-page"></span>
-    `;
-    row.addEventListener("click", async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      tocEl.classList.remove("show");
-      try {
-        await rendition?.display(it.href);
-      } catch (_) {}
+  (async () => {
+    const improved = await improveLabels(list);
+    // Оставляем только «Глава …» и «Эпилог»
+    let wanted = improved.filter((it) =>
+      /^(?:глава\b|эпилог\b)/i.test(it.label || "")
+    );
+    if (!wanted.length) wanted = improved; // запасной вариант
+    wanted.forEach((it, idx) => {
+      const row = document.createElement("button");
+      row.className = "toc-item";
+      row.innerHTML = `
+        <span class="toc-level">${String(idx + 1).padStart(2, "0")}</span>
+        <span class="toc-title">${it.label}</span>
+        <span class="toc-page"></span>
+      `;
+      row.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        tocEl.classList.remove("show");
+        try {
+          await rendition?.display(it.href);
+        } catch (_) {}
+      });
+      tocList.appendChild(row);
     });
-    tocList.appendChild(row);
-  });
+  })();
   tocBtn?.addEventListener("click", () => tocEl.classList.add("show"));
   tocClose?.addEventListener("click", () => tocEl.classList.remove("show"));
 }

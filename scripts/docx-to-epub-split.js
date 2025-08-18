@@ -63,7 +63,7 @@ async function main() {
     const parts = htmlRaw.split(/<h2[^>]*>/i);
     const out = [];
     if (parts[0].trim()) out.push(parts[0]);
-    for (let i = 1; i < parts.length; i++) out.push('<h2>' + parts[i]);
+    for (let i = 1; i < parts.length; i++) out.push("<h2>" + parts[i]);
     chapters = out;
   } else {
     chapters = splitHtmlByChapters(htmlRaw);
@@ -79,14 +79,20 @@ async function main() {
   const mkTitle = (idx, html) => {
     const m = html.match(/<p[^>]*>(.*?)<\/p>/i);
     const raw = m ? m[1] : `Глава ${idx + 1}`;
-    return String(raw).replace(/<[^>]+>/g, "").trim() || `Глава ${idx + 1}`;
+    return (
+      String(raw)
+        .replace(/<[^>]+>/g, "")
+        .trim() || `Глава ${idx + 1}`
+    );
   };
   const normalized = chapters.map((h, i) => {
     const title = mkTitle(i, h);
     return `\n<h1>${title}</h1>\n${h}`;
   });
   const combinedPath = path.join(outDir, "combined.html");
-  const combined = `<!doctype html><html lang=\"ru\"><head><meta charset=\"utf-8\"></head><body>${normalized.join("\n")}</body></html>`;
+  const combined = `<!doctype html><html lang=\"ru\"><head><meta charset=\"utf-8\"></head><body>${normalized.join(
+    "\n"
+  )}</body></html>`;
   await fs.writeFile(combinedPath, combined, "utf8");
 
   // Соберём EPUB через pandoc с разбиением по H1
