@@ -314,7 +314,12 @@ setState("state-onboarding");
 async function initEpubReader() {
   statusEl.textContent = "Загрузка EPUB...";
   try {
-    await loadScript("https://unpkg.com/epubjs/dist/epub.min.js");
+    // сначала пробуем локальную копию, потом CDN
+    try {
+      await loadScript("/assets/vendor/epub.min.js?v=" + Date.now());
+    } catch (_) {
+      await loadScript("https://unpkg.com/epubjs/dist/epub.min.js");
+    }
     const src = "/assets/book.epub";
     const book = window.ePub(src);
     const { width, height } = getViewportSize();
@@ -332,6 +337,7 @@ async function initEpubReader() {
       statusEl.textContent = "EPUB";
     });
   } catch (e) {
+    console.error("EPUB error", e);
     statusEl.textContent = "EPUB не найден";
   }
 }
