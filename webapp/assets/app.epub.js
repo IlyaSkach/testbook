@@ -701,6 +701,60 @@ pageContainer.addEventListener("touchend", (e) => {
   touchStartX = null;
 });
 
+// Свайпы внутри iframe EPUB
+function attachSwipeInView(view) {
+  try {
+    const doc = view?.document || view?.contents?.document;
+    if (!doc) return;
+    let startX = null;
+    doc.addEventListener(
+      "touchstart",
+      (ev) => {
+        startX = ev.changedTouches?.[0]?.clientX ?? null;
+      },
+      { passive: true }
+    );
+    doc.addEventListener(
+      "touchend",
+      (ev) => {
+        if (startX == null) return;
+        const dx = (ev.changedTouches?.[0]?.clientX ?? 0) - startX;
+        startX = null;
+        if (navMode !== "swipe") return;
+        if (Math.abs(dx) > 40) {
+          if (!canNavigate()) return;
+          if (dx < 0) rendition?.next();
+          else rendition?.prev();
+        }
+      },
+      { passive: true }
+    );
+    // Мышь для десктоп-тестов
+    let mStart = null;
+    doc.addEventListener("mousedown", (ev) => {
+      mStart = ev.clientX;
+    });
+    doc.addEventListener("mouseup", (ev) => {
+      if (mStart == null) return;
+      const dx = ev.clientX - mStart;
+      mStart = null;
+      if (navMode !== "swipe") return;
+      if (Math.abs(dx) > 40) {
+        if (!canNavigate()) return;
+        if (dx < 0) rendition?.next();
+        else rendition?.prev();
+      }
+    });
+  } catch (_) {}
+}
+
+// Подключаем обработчики для каждого отрисованного view
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    rendition?.on?.("displayed", (view) => attachSwipeInView(view));
+  } catch (_) {}
+});
+
 // Buttons and state
 onbStart?.addEventListener("click", () => setState("state-home"));
 phBack?.addEventListener("click", () => ph?.classList.remove("show"));
