@@ -70,21 +70,13 @@ let book = null;
 async function initEpub() {
   statusEl.textContent = "Загрузка EPUB...";
   try {
-    // 1) Убедимся, что файл доступен
-    const head = await fetch(`/assets/book.epub?v=${Date.now()}`, {
-      method: "HEAD",
-      cache: "no-store",
-    });
-    if (!head.ok) {
-      statusEl.textContent = "EPUB не найден";
-      return;
-    }
-    // 2) Загружаем как Blob, чтобы исключить CORS/кеш проблемы
+    // Загружаем файл (без предварительного HEAD — в WebView бывает заблокирован)
     const res = await fetch(`/assets/book.epub?v=${Date.now()}`, {
       cache: "no-store",
     });
     if (!res.ok) throw new Error("epub fetch failed");
     const buf = await res.arrayBuffer();
+    const blob = new Blob([buf], { type: "application/epub+zip" });
 
     // 3) Грузим зависимости: JSZip, затем ePub.js (локально, затем CDN)
     try {
@@ -101,12 +93,20 @@ async function initEpub() {
     }
 
     // 4) Рендер
-    // Для EPUB зададим высоту равной видимой области без футера,
-    // а ширину — полной ширине контейнера
     const { width, height } = getViewportSize();
     pageContainer.innerHTML = "";
-    // Передаём ArrayBuffer напрямую в ePub.js
-    book = window.ePub(buf);
+    // Попробуем по очереди: ArrayBuffer → Blob → ObjectURL
+    let createdUrl = null;
+    try {
+      book = window.ePub(buf);
+    } catch (_) {
+      try {
+        book = window.ePub(blob);
+      } catch (_) {
+        createdUrl = URL.createObjectURL(blob);
+        book = window.ePub(createdUrl);
+      }
+    }
     rendition = book.renderTo("page-container", {
       width,
       height,
@@ -221,9 +221,13 @@ async function initEpub() {
     });
 
     statusEl.textContent = "EPUB";
+    if (createdUrl) {
+      // освободим URL позже
+      setTimeout(() => URL.revokeObjectURL(createdUrl), 15000);
+    }
   } catch (e) {
     console.error("EPUB error", e);
-    statusEl.textContent = "EPUB не загрузился";
+    statusEl.textContent = `EPUB не загрузился: ${e?.message || "unknown"}`;
   }
 }
 
