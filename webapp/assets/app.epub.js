@@ -75,6 +75,7 @@ let book = null;
 let hasFullAccess = false;
 let demoMode = true; // если нет доступа — показываем только первую главу
 let FIRST_HREF = null;
+let paywallShownOnce = false;
 
 async function initEpub() {
   statusEl.textContent = "Загрузка EPUB...";
@@ -139,6 +140,11 @@ async function initEpub() {
         book = window.ePub(createdUrl);
       }
     }
+    // Сохраним первую главу заранее
+    try {
+      FIRST_HREF = book?.spine?.items?.[0]?.href || null;
+    } catch (_) {}
+
     rendition = book.renderTo("page-container", {
       width,
       height,
@@ -435,19 +441,31 @@ function buildToc(items) {
 }
 
 // DEMO: перехват переходов между главами и показ пейволла
+function normalizeHref(href) {
+  if (!href) return "";
+  try {
+    return String(href).split("#")[0];
+  } catch (_) {
+    return String(href || "");
+  }
+}
+
 function enforceDemo() {
   if (!demoMode) return;
-  // Разрешаем только первый spine item (первая глава) — блокируем переход вперёд
+  // Разрешаем только 1-ю главу. При попытке уйти — возвращаем и один раз показываем пейволл
   rendition.on("relocated", (location) => {
     try {
-      const startIndex = location?.start?.index || 0;
-      const atEnd = location?.atEnd || false;
-      const spineIndex = location?.start?.index || 0;
-      if (spineIndex > 0 || atEnd) {
-        // Вернём читателя на первую главу и покажем пейволл
-        const first = book?.spine?.items?.[0]?.href;
-        if (first) rendition.display(first);
-        showPaywall();
+      const curHref = normalizeHref(location?.start?.href);
+      const first = normalizeHref(FIRST_HREF || book?.spine?.items?.[0]?.href);
+      if (!first || !curHref) return;
+      if (curHref !== first) {
+        // Вернуть на первую главу
+        if (FIRST_HREF) rendition.display(FIRST_HREF);
+        // Показать пейволл только один раз, чтобы не мешать чтению первой главы
+        if (!paywallShownOnce) {
+          paywallShownOnce = true;
+          showPaywall();
+        }
       }
     } catch (_) {}
   });
