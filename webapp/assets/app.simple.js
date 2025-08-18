@@ -151,7 +151,8 @@ function paginateSectionsToPages(sections) {
   while (queue.length) {
     const sectionHtml = queue.shift();
     const nodes = htmlToNodes(sectionHtml);
-    for (let node of nodes) {
+    for (let j = 0; j < nodes.length; j++) {
+      const node = nodes[j];
       if (node.nodeType === 3 && !node.textContent.trim()) continue;
       host.appendChild(node);
       if (host.scrollHeight > maxHeight) {
@@ -161,9 +162,9 @@ function paginateSectionsToPages(sections) {
           if (first.textContent) host.appendChild(first);
           pushPage();
           if (rest) queue.unshift(rest.outerHTML);
-          const remaining = Array.from(
-            nodes.slice(nodes.indexOf(node) + 1)
-          ).map((n) => n.outerHTML || n.textContent);
+          const remaining = Array.from(nodes.slice(j + 1)).map(
+            (n) => n.outerHTML || n.textContent
+          );
           for (let i = remaining.length - 1; i >= 0; i--)
             queue.unshift(remaining[i]);
           break;
