@@ -183,9 +183,13 @@ async function initEpub() {
       }
     }
     if (!opened) {
-      const target = demoMode ? (FIRST_HREF || startHref) : (startHref || undefined);
+      const target = demoMode
+        ? FIRST_HREF || startHref
+        : startHref || undefined;
       await Promise.race([
-        (target ? rendition.display(target) : rendition.display()).then(() => (initialDisplayed = true)),
+        (target ? rendition.display(target) : rendition.display()).then(
+          () => (initialDisplayed = true)
+        ),
         new Promise((_, rej) =>
           setTimeout(() => rej(new Error("display timeout")), 20000)
         ),
@@ -195,7 +199,8 @@ async function initEpub() {
     // fallback если не отрисовалось
     if (!initialDisplayed) {
       try {
-        const fallbackHref = FIRST_HREF || book?.spine?.items?.[0]?.href || null;
+        const fallbackHref =
+          FIRST_HREF || book?.spine?.items?.[0]?.href || null;
         if (fallbackHref) {
           await rendition.display(fallbackHref);
           initialDisplayed = true;
@@ -283,6 +288,14 @@ async function initEpub() {
       try {
         localStorage.setItem(STORE_KEY_CFI, location?.start?.cfi || "");
       } catch (_) {}
+      // Выводим текущий раздел для диагностики синих экранов
+      statusEl.textContent = `Раздел: ${normalizeHref(location?.start?.href || "")}`;
+    });
+    rendition.on("rendered", () => {
+      // Если всё хорошо — очищаем статус
+      setTimeout(() => {
+        statusEl.textContent = "";
+      }, 300);
     });
 
     // TOC: если в EPUB нет нормального nav, соберём оглавление из spine
