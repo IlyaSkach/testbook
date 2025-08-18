@@ -87,6 +87,22 @@ let demoBlockedByTapLimit = false;
 const STORE_KEY_NAV = "nav_mode"; // tap | swipe
 let navMode = localStorage.getItem(STORE_KEY_NAV) || "tap";
 
+// Глобальная проверка на возможность навигации (с учётом демо-ограничений)
+function canNavigate() {
+  if (!demoMode) return true;
+  if (demoBlockedByTapLimit) {
+    showPaywall();
+    return false;
+  }
+  demoTapCount++;
+  if (demoTapCount >= DEMO_TAP_LIMIT) {
+    demoBlockedByTapLimit = true;
+    showPaywall();
+    return false;
+  }
+  return true;
+}
+
 async function initEpub() {
   statusEl.textContent = "Загрузка EPUB...";
   try {
@@ -163,6 +179,10 @@ async function initEpub() {
       allowScriptedContent: false,
       manager: "default",
     });
+    // Навесим обработчик для каждого отображаемого view (для свайпов внутри iframe)
+    try {
+      rendition.on("displayed", (view) => attachSwipeInView(view));
+    } catch (_) {}
 
     await Promise.race([
       book.ready,
@@ -322,21 +342,6 @@ async function initEpub() {
       currentFontPercent -= 6;
       applyFont();
     });
-
-    function canNavigate() {
-      if (!demoMode) return true;
-      if (demoBlockedByTapLimit) {
-        showPaywall();
-        return false;
-      }
-      demoTapCount++;
-      if (demoTapCount >= DEMO_TAP_LIMIT) {
-        demoBlockedByTapLimit = true;
-        showPaywall();
-        return false;
-      }
-      return true;
-    }
 
     prevBtn.onclick = (e) => {
       e.stopPropagation();
@@ -749,11 +754,7 @@ function attachSwipeInView(view) {
 }
 
 // Подключаем обработчики для каждого отрисованного view
-document.addEventListener("DOMContentLoaded", () => {
-  try {
-    rendition?.on?.("displayed", (view) => attachSwipeInView(view));
-  } catch (_) {}
-});
+// Также на случай уже отображённой страницы подключимся сразу после initEpub
 
 // Buttons and state
 onbStart?.addEventListener("click", () => setState("state-home"));

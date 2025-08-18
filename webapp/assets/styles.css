@@ -457,6 +457,8 @@ body.state-reader .app-footer {
 .reader.mode-epub {
   padding-bottom: 0;
 }
+/* В режиме свайпа скрываем тач-зоны — управляет JS, но зададим базу */
+.reader .nav-btn { display:block; }
 @supports (height: 100svh) {
   #app {
     height: 100svh;
