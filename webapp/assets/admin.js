@@ -10,10 +10,13 @@ function renderRequests(list) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${r.id}</td>
-      <td>${r.user_id}</td>
+      <td>${r.user_id}<br/><small>@${r.users?.username || ""}</small></td>
       <td>${r.status}</td>
       <td>
-        <button data-id="${r.id}" data-user="${r.user_id}" class="approve">Подтвердить</button>
+        <button data-id="${r.id}" data-user="${
+      r.user_id
+    }" class="approve">Подтвердить</button>
+        <button data-user="${r.user_id}" class="danger delete">Удалить</button>
       </td>`;
     tbody.appendChild(tr);
   });
@@ -35,17 +38,34 @@ qs("#refreshBtn").addEventListener("click", async () => {
 });
 
 document.addEventListener("click", async (e) => {
-  const btn = e.target.closest("button.approve");
-  if (!btn) return;
-  const id = btn.getAttribute("data-id");
-  const userId = btn.getAttribute("data-user");
-  const res = await fetch("/.netlify/functions/approve-request", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-    body: JSON.stringify({ id, userId }),
-  });
-  const data = await res.json();
-  if (!data.ok) return alert(data.error || "Ошибка");
-  alert("Одобрено");
-  qs("#refreshBtn").click();
+  const approve = e.target.closest("button.approve");
+  const del = e.target.closest("button.delete");
+  if (approve) {
+    const id = approve.getAttribute("data-id");
+    const userId = approve.getAttribute("data-user");
+    const res = await fetch("/.netlify/functions/approve-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify({ id, userId }),
+    });
+    const data = await res.json();
+    if (!data.ok) return alert(data.error || "Ошибка");
+    alert("Одобрено");
+    qs("#refreshBtn").click();
+  } else if (del) {
+    const userId = del.getAttribute("data-user");
+    if (
+      !confirm(`Удалить пользователя ${userId}? Будут удалены доступ и заявки.`)
+    )
+      return;
+    const res = await fetch("/.netlify/functions/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+      body: JSON.stringify({ userId }),
+    });
+    const data = await res.json();
+    if (!data.ok) return alert(data.error || "Ошибка");
+    alert("Удалено");
+    qs("#refreshBtn").click();
+  }
 });

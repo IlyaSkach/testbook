@@ -11,7 +11,7 @@ export const handler = async (event) => {
     const supa = getServiceClient();
     const { data, error } = await supa
       .from("purchase_requests")
-      .select("id,user_id,status,created_at")
+      .select("id,user_id,status,created_at, users(username)")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw error;
