@@ -340,6 +340,37 @@ function paginateSectionsToPages(sections) {
   return out;
 }
 
+function effectivePages() {
+  if (!BOOK_PAGES) return [];
+  return hasFullAccess
+    ? BOOK_PAGES
+    : BOOK_PAGES.filter((p) => p.type === "demo");
+}
+
+function render(i) {
+  const list = effectivePages();
+  if (!list || !list.length) {
+    dbg("render: no pages");
+    return;
+  }
+  if (i < 0) i = 0;
+  if (i >= list.length) i = list.length - 1;
+  currentIndex = i;
+  dbg("render page", i + 1, "of", list.length);
+  const old = pageContainer.querySelector(".page-inner");
+  if (old) {
+    old.classList.add("flip-exit");
+    setTimeout(() => old.remove(), 300);
+  }
+  const w = document.createElement("div");
+  const html = list[i].content.trim();
+  const onlyFullImg =
+    /^\s*<img[^>]*class=["'][^"']*full-img[^"']*["'][^>]*>\s*$/i.test(html);
+  w.className = "page-inner flip-enter" + (onlyFullImg ? " no-pad" : "");
+  w.innerHTML = html;
+  pageContainer.appendChild(w);
+}
+
 async function loadBookSections() {
   try {
     statusEl.textContent = "Загрузка книги...";
