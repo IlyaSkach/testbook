@@ -276,21 +276,40 @@ async function initEpub() {
 }
 
 function buildToc(items) {
-  if (!Array.isArray(items) || !items.length) return;
+  function labelOf(it, idx) {
+    const raw = it?.label || it?.title || it?.text || it?.idref || it?.id;
+    if (typeof raw === "string") return raw.trim() || `Глава ${idx + 1}`;
+    if (raw && typeof raw.toString === "function")
+      return raw.toString() || `Глава ${idx + 1}`;
+    return `Глава ${idx + 1}`;
+  }
+  function hrefOf(it) {
+    return it?.href || it?.url || it?.canonical || it?.href?.href || null;
+  }
+  // Если nav пуст — собираем из spine
+  let list = Array.isArray(items) ? items.slice() : [];
+  if (!list.length && book?.spine?.items?.length) {
+    list = book.spine.items.map((sp, i) => ({
+      href: hrefOf(sp) || sp?.href,
+      label: sp?.idref || `Глава ${i + 1}`,
+    }));
+  }
+  list = list
+    .map((it, idx) => ({ href: hrefOf(it), label: labelOf(it, idx) }))
+    .filter((it) => !!it.href);
+  if (!list.length) return;
   tocList.innerHTML = "";
-  items.forEach((it) => {
+  list.forEach((it, idx) => {
     const row = document.createElement("button");
     row.className = "toc-item";
     row.innerHTML = `
-      <span class="toc-level">EPUB</span>
-      <span class="toc-title">${(
-        it.label ||
-        it.title ||
-        "Без названия"
-      ).toString()}</span>
+      <span class="toc-level">${String(idx + 1).padStart(2, "0")}</span>
+      <span class="toc-title">${it.label}</span>
       <span class="toc-page"></span>
     `;
-    row.addEventListener("click", async () => {
+    row.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       tocEl.classList.remove("show");
       try {
         await rendition?.display(it.href);
