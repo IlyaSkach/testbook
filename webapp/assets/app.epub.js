@@ -76,6 +76,7 @@ let hasFullAccess = false;
 let demoMode = true; // если нет доступа — показываем только первую главу
 let FIRST_HREF = null;
 let paywallShownOnce = false;
+let demoArmed = false;
 
 async function initEpub() {
   statusEl.textContent = "Загрузка EPUB...";
@@ -181,11 +182,9 @@ async function initEpub() {
       }
     }
     if (!opened) {
+      const target = demoMode ? (FIRST_HREF || startHref) : (startHref || undefined);
       await Promise.race([
-        // В демо всегда начинаем с начала
-        startHref && !demoMode
-          ? rendition.display(startHref)
-          : rendition.display(),
+        target ? rendition.display(target) : rendition.display(),
         new Promise((_, rej) =>
           setTimeout(() => rej(new Error("display timeout")), 8000)
         ),
@@ -458,10 +457,19 @@ function enforceDemo() {
       const curHref = normalizeHref(location?.start?.href);
       const first = normalizeHref(FIRST_HREF || book?.spine?.items?.[0]?.href);
       if (!first || !curHref) return;
+      // Активируем ограничение только после первого открытия первой главы
+      if (curHref === first && !demoArmed) {
+        demoArmed = true;
+        return;
+      }
       if (curHref !== first) {
-        // Вернуть на первую главу
+        // Если ещё не "armed" — мягко вернём без пейволла (инициализация)
+        if (!demoArmed) {
+          if (FIRST_HREF) rendition.display(FIRST_HREF);
+          return;
+        }
+        // Armed: блокируем уход со 1-й главы, показываем пейволл один раз
         if (FIRST_HREF) rendition.display(FIRST_HREF);
-        // Показать пейволл только один раз, чтобы не мешать чтению первой главы
         if (!paywallShownOnce) {
           paywallShownOnce = true;
           showPaywall();
