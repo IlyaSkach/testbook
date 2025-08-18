@@ -140,7 +140,7 @@ body,
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: none;
-  z-index: 80;
+  z-index: 2000;
 }
 .toc .toc-inner {
   position: absolute;
@@ -420,6 +420,10 @@ body.state-reader .app-header {
 }
 body.state-reader .app-footer {
   display: flex;
+}
+/* EPUB режим: убираем нижний внутренний паддинг у ридера */
+.reader.mode-epub {
+  padding-bottom: 0;
 }
 @supports (height: 100svh) {
   #app {

@@ -265,6 +265,7 @@ phBack?.addEventListener("click", () => ph?.classList.remove("show"));
 btnRead?.addEventListener("click", async () => {
   ph?.classList.remove("show");
   setState("state-reader");
+  readerEl.classList.add("mode-epub");
   await initEpub();
 });
 
