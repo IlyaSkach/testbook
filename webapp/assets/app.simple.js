@@ -342,11 +342,18 @@ async function initEpubReader() {
       spread: "auto",
       allowScriptedContent: false,
     });
+    // дождёмся подготовки книги
+    await Promise.race([
+      book.ready,
+      new Promise((_, rej) =>
+        setTimeout(() => rej(new Error("book ready timeout")), 8000)
+      ),
+    ]);
     // таймаут на init
     await Promise.race([
       rendition.display(),
       new Promise((_, rej) =>
-        setTimeout(() => rej(new Error("display timeout")), 7000)
+        setTimeout(() => rej(new Error("display timeout")), 8000)
       ),
     ]);
     prevBtn.onclick = () => rendition.prev();
