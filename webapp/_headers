@@ -1,0 +1,10 @@
+/*
+  Cache-Control: no-cache
+
+/assets/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/book.epub
+  Cache-Control: public, max-age=86400
+
+

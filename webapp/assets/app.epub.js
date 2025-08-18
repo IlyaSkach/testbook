@@ -131,27 +131,13 @@ async function initEpub() {
       hasFullAccess = !!d?.hasFullAccess;
       demoMode = !hasFullAccess;
     } catch (_) {}
-    // Загружаем файл (без предварительного HEAD — в WebView бывает заблокирован)
-    const res = await fetch(`/assets/book.epub?v=${Date.now()}`, {
-      cache: "no-store",
-    });
+    // Загружаем файл с кэшем браузера (ускоряет повторные открытия)
+    const res = await fetch(`/assets/book.epub`, { cache: "force-cache" });
     if (!res.ok) throw new Error("epub fetch failed");
     const buf = await res.arrayBuffer();
     const blob = new Blob([buf], { type: "application/epub+zip" });
 
-    // 3) Грузим зависимости: JSZip, затем ePub.js (локально, затем CDN)
-    try {
-      await loadScript(`/assets/vendor/jszip.min.js?v=${Date.now()}`);
-    } catch (_) {
-      await loadScript(
-        "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
-      );
-    }
-    try {
-      await loadScript(`/assets/vendor/epub.min.js?v=${Date.now()}`);
-    } catch (_) {
-      await loadScript("https://unpkg.com/epubjs/dist/epub.min.js");
-    }
+    // 3) Зависимости уже подключены в index.html (defer)
 
     // 4) Рендер
     const { width, height } = getViewportSize();
@@ -352,7 +338,10 @@ async function initEpub() {
         pageContainer.classList.remove("flip-enter", "flip-exit");
         void pageContainer.offsetWidth;
         pageContainer.classList.add("flip-exit");
-        setTimeout(() => pageContainer.classList.remove("flip-exit"), EXIT_MS + 50);
+        setTimeout(
+          () => pageContainer.classList.remove("flip-exit"),
+          EXIT_MS + 50
+        );
       } catch (_) {}
     }
     function animateEnter() {
@@ -360,7 +349,10 @@ async function initEpub() {
         pageContainer.classList.remove("flip-enter", "flip-exit");
         void pageContainer.offsetWidth;
         pageContainer.classList.add("flip-enter");
-        setTimeout(() => pageContainer.classList.remove("flip-enter"), ENTER_MS + 50);
+        setTimeout(
+          () => pageContainer.classList.remove("flip-enter"),
+          ENTER_MS + 50
+        );
       } catch (_) {}
     }
     prevBtn.onclick = (e) => {
