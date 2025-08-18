@@ -132,7 +132,16 @@ async function initEpub() {
       demoMode = !hasFullAccess;
     } catch (_) {}
     // Загружаем файл с кэшем браузера (ускоряет повторные открытия)
-    const res = await fetch(`/assets/book.epub`, { cache: "force-cache" });
+    // Пробуем сначала из кэша, параллельно подгружаем обновление (stale-while-revalidate вручную)
+    let res = await caches?.open?.("book-cache")
+      ?.then((c) => c.match("/assets/book.epub"))
+      .catch(() => null);
+    if (!res) {
+      res = await fetch(`/assets/book.epub`, { cache: "force-cache" });
+    } else {
+      // фоновое обновление
+      fetch(`/assets/book.epub`, { cache: "reload" }).catch(() => {});
+    }
     if (!res.ok) throw new Error("epub fetch failed");
     const buf = await res.arrayBuffer();
     const blob = new Blob([buf], { type: "application/epub+zip" });
