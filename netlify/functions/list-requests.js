@@ -9,11 +9,21 @@ export const handler = async (event) => {
       return json(401, { ok: false, error: "Unauthorized" });
     }
     const supa = getServiceClient();
-    // Вернём только последнюю заявку на пользователя
+    // Вернём только последнюю заявку на пользователя (без RPC, на приложении)
     const { data, error } = await supa
-      .rpc("get_latest_requests_with_user");
+      .from("purchase_requests")
+      .select("id,user_id,status,created_at, users(username)")
+      .order("created_at", { ascending: false })
+      .limit(1000);
     if (error) throw error;
-    return json(200, { ok: true, items: data });
+    const seen = new Set();
+    const deduped = [];
+    for (const row of data) {
+      if (seen.has(row.user_id)) continue;
+      seen.add(row.user_id);
+      deduped.push(row);
+    }
+    return json(200, { ok: true, items: deduped });
   } catch (e) {
     return json(500, { ok: false, error: e.message });
   }
