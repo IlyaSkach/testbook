@@ -177,7 +177,9 @@ async function initEpub() {
     if (!opened) {
       await Promise.race([
         // В демо всегда начинаем с начала
-        startHref && !demoMode ? rendition.display(startHref) : rendition.display(),
+        startHref && !demoMode
+          ? rendition.display(startHref)
+          : rendition.display(),
         new Promise((_, rej) =>
           setTimeout(() => rej(new Error("display timeout")), 8000)
         ),
@@ -310,7 +312,8 @@ async function initEpub() {
     // Применим демо-ограничение
     enforceDemo();
     // UI-индикатор доступа и видимость оглавления
-    if (accessLabel) accessLabel.textContent = demoMode ? "Демо версия" : "Полная версия";
+    if (accessLabel)
+      accessLabel.textContent = demoMode ? "Демо версия" : "Полная версия";
     if (tocBtn) tocBtn.style.display = demoMode ? "none" : "inline-block";
     if (createdUrl) {
       // освободим URL позже
