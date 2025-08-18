@@ -130,12 +130,7 @@ async function initEpub() {
 
     // Тема: увеличенный шрифт и корректные отступы, запрет выхода за край
     rendition.themes.register("tg", {
-      "html, body": {
-        margin: 0,
-        padding: "16px",
-        background: "transparent",
-        overflow: "hidden",
-      },
+      "html, body": { margin: 0, padding: 0, background: "transparent" },
       body: {
         fontSize: "18px",
         lineHeight: "1.6",
@@ -144,6 +139,7 @@ async function initEpub() {
         WebkitHyphens: "auto",
         hyphens: "auto",
         boxSizing: "border-box",
+        padding: "16px 16px 24px 16px",
       },
       p: { margin: "0 0 1em" },
       img: { maxWidth: "100% !important", height: "auto !important" },
@@ -177,8 +173,14 @@ async function initEpub() {
       applyFont();
     });
 
-    prevBtn.onclick = () => rendition.prev();
-    nextBtn.onclick = () => rendition.next();
+    prevBtn.onclick = (e) => {
+      e.stopPropagation();
+      rendition.prev();
+    };
+    nextBtn.onclick = (e) => {
+      e.stopPropagation();
+      rendition.next();
+    };
     rendition.on("relocated", (location) => {
       try {
         localStorage.setItem(STORE_KEY_CFI, location?.start?.cfi || "");
