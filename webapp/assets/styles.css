@@ -239,6 +239,9 @@ body,
   line-height: 1.6;
   overflow: hidden;
 }
+.swipe-overlay{
+  position:absolute; inset:0; z-index:600; background:transparent; display:none;
+}
 .page-inner {
   position: absolute;
   inset: 0;
@@ -458,7 +461,9 @@ body.state-reader .app-footer {
   padding-bottom: 0;
 }
 /* В режиме свайпа скрываем тач-зоны — управляет JS, но зададим базу */
-.reader .nav-btn { display:block; }
+.reader .nav-btn {
+  display: block;
+}
 @supports (height: 100svh) {
   #app {
     height: 100svh;

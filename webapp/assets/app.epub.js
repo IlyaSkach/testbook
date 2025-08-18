@@ -20,6 +20,7 @@ const footerEl = document.querySelector(".app-footer");
 const readerEl = document.getElementById("reader");
 const statusEl = document.getElementById("status");
 const pageContainer = document.getElementById("page-container");
+const swipeOverlay = document.getElementById("swipeOverlay");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const tocBtn = document.getElementById("tocBtn");
@@ -688,14 +689,15 @@ payBuyBtn?.addEventListener("click", async (e) => {
 
 // Touch swipe
 let touchStartX = null;
-pageContainer.addEventListener(
+const overlayTarget = swipeOverlay || pageContainer;
+overlayTarget.addEventListener(
   "touchstart",
   (e) => {
     touchStartX = e.changedTouches[0].clientX;
   },
   { passive: true }
 );
-pageContainer.addEventListener("touchend", (e) => {
+overlayTarget.addEventListener("touchend", (e) => {
   if (touchStartX == null) return;
   const dx = e.changedTouches[0].clientX - touchStartX;
   if (navMode === "swipe" && Math.abs(dx) > 40) {
@@ -773,6 +775,7 @@ function updateNavModeUI() {
     navModeSwipeBtn.classList.toggle("active", navMode === "swipe");
   if (prevBtn) prevBtn.style.display = navMode === "tap" ? "block" : "none";
   if (nextBtn) nextBtn.style.display = navMode === "tap" ? "block" : "none";
+  if (swipeOverlay) swipeOverlay.style.display = navMode === "swipe" ? "block" : "none";
 }
 updateNavModeUI();
 navModeTapBtn?.addEventListener("click", () => {
