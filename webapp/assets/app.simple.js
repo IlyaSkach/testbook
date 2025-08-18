@@ -148,7 +148,13 @@ function paginateSectionsToPages(sections) {
   const queue = [];
   normalized.forEach((h) => queue.push(h));
 
+  let safetyCounter = 0;
+  const SAFETY_LIMIT = 50000;
   while (queue.length) {
+    if (++safetyCounter > SAFETY_LIMIT) {
+      // аварийный выход, чтобы не зависать
+      break;
+    }
     const sectionHtml = queue.shift();
     const nodes = htmlToNodes(sectionHtml);
     for (let j = 0; j < nodes.length; j++) {
@@ -216,6 +222,15 @@ async function loadChapters() {
   return sections.length ? sections : DEFAULT_SECTIONS;
 }
 
+function renderHtml(html) {
+  const old = pageContainer.querySelector(".page-inner");
+  if (old) old.remove();
+  const w = document.createElement("div");
+  w.className = "page-inner";
+  w.innerHTML = sanitize(html);
+  pageContainer.appendChild(w);
+}
+
 function render(i) {
   if (!PAGES.length) return;
   if (i < 0) i = 0;
@@ -260,10 +275,18 @@ btnRead?.addEventListener("click", async () => {
   setState("state-reader");
   try {
     const sections = await loadChapters();
-    await new Promise((r) => requestAnimationFrame(r));
-    PAGES = paginateSectionsToPages(sections);
-    render(0);
-    statusEl.textContent = `Страниц: ${PAGES.length}`;
+    // быстрый фолбэк: сразу покажем первую секцию, потом допагинируем
+    renderHtml(sections[0] || DEFAULT_SECTIONS[0]);
+    statusEl.textContent = "Рендерим страницы...";
+    setTimeout(() => {
+      try {
+        PAGES = paginateSectionsToPages(sections);
+        render(0);
+        statusEl.textContent = `Страниц: ${PAGES.length}`;
+      } catch (e) {
+        statusEl.textContent = "Ошибка рендеринга";
+      }
+    }, 0);
   } catch (e) {
     statusEl.textContent = "Ошибка загрузки";
   }
