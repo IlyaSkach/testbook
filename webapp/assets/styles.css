@@ -124,6 +124,63 @@ body,
 .buy-btn.hidden {
   display: none;
 }
+
+/* TOC overlay */
+.toc {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 80;
+}
+.toc .toc-inner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 80%;
+  background: #0b1220;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.toc-top h2 {
+  margin: 4px 6px 8px;
+  font-size: 18px;
+}
+.toc-list {
+  overflow: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.toc-item {
+  background: #12141a;
+  border: 1px solid #1f2330;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.toc-item .toc-level {
+  opacity: 0.6;
+  font-size: 12px;
+  min-width: 32px;
+}
+.toc-item .toc-title {
+  flex: 1;
+}
+.toc-item .toc-page {
+  opacity: 0.7;
+  font-size: 12px;
+}
+.toc.show {
+  display: block;
+}
 .reader {
   position: relative;
   flex: 1;
@@ -374,4 +431,10 @@ body.state-reader .app-footer {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Адаптивная типографика для текста книги */
+.page-inner {
+  font-size: clamp(17px, 2.2vw, 20px);
+  line-height: 1.65;
 }

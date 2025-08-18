@@ -61,8 +61,22 @@
 		</main>
 		<footer class="app-footer hidden">
 			<div id="status"></div>
+			<button id="tocBtn" class="buy-btn" style="background:#0ea5e9">Оглавление</button>
 			<button id="buyBtn" class="buy-btn">Купить полную версию</button>
 		</footer>
+	</div>
+
+	<!-- Table of contents overlay -->
+	<div id="toc" class="toc hidden" role="dialog" aria-modal="true">
+		<div class="toc-inner">
+			<header class="toc-top">
+				<h2>Оглавление</h2>
+			</header>
+			<div id="tocList" class="toc-list"></div>
+			<div class="toc-actions">
+				<button id="tocClose" class="onb-btn">Закрыть</button>
+			</div>
+		</div>
 	</div>
 	<script type="module" src="/assets/app.js"></script>
 </body>

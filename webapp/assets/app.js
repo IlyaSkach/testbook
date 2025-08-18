@@ -16,6 +16,10 @@ const headerEl = document.querySelector(".app-header");
 const footerEl = document.querySelector(".app-footer");
 const readerEl = document.getElementById("reader");
 const statusEl = document.getElementById("status");
+const tocBtn = document.getElementById("tocBtn");
+const tocEl = document.getElementById("toc");
+const tocClose = document.getElementById("tocClose");
+const tocList = document.getElementById("tocList");
 
 const DEBUG = location.search.includes("debug=1");
 function dbg(...args) {
@@ -58,6 +62,13 @@ btnRead?.addEventListener("click", () => {
   }, 0);
 });
 
+tocBtn?.addEventListener("click", () => {
+  if (!BOOK_PAGES) return;
+  if (!TOC || TOC.length === 0) TOC = buildToc(BOOK_PAGES);
+  openToc();
+});
+tocClose?.addEventListener("click", () => tocEl.classList.remove("show"));
+
 // init state
 setState("state-onboarding");
 
@@ -67,6 +78,7 @@ const pageContainer = document.getElementById("page-container");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const buyBtn = document.getElementById("buyBtn");
+let TOC = [];
 
 function getUser() {
   const u = tg?.initDataUnsafe?.user;
@@ -281,6 +293,8 @@ async function loadBookPages() {
     dbg("sections length", sections.length);
     if (!sections.length) throw new Error("empty book");
     BOOK_PAGES = paginateSectionsToPages(sections);
+    // построение оглавления на основе заголовков внутри страниц
+    TOC = buildToc(BOOK_PAGES);
     statusEl.textContent = hasFullAccess ? "Полный доступ" : "Демо-версия";
   } catch (e) {
     dbg("loadBookPages error", e?.message);
@@ -299,6 +313,41 @@ async function loadBookPages() {
       { type: "full", content: "<h2>Глава 3</h2><p>Полная часть</p>" },
     ];
   }
+}
+
+function buildToc(pages) {
+  const toc = [];
+  const headingRegex = /<(h[1-3])[^>]*>(.*?)<\/\1>/gi;
+  for (let i = 0; i < pages.length; i++) {
+    const html = pages[i].content || "";
+    let match;
+    while ((match = headingRegex.exec(html))) {
+      const level = match[1];
+      const title = match[2].replace(/<[^>]+>/g, "").trim();
+      if (title) toc.push({ title, level, pageIndex: i });
+    }
+  }
+  return toc;
+}
+
+function openToc() {
+  if (!TOC || !TOC.length) return;
+  tocList.innerHTML = "";
+  TOC.forEach((item) => {
+    const row = document.createElement("button");
+    row.className = "toc-item";
+    row.innerHTML = `
+      <span class="toc-level">${item.level.toUpperCase()}</span>
+      <span class="toc-title">${item.title}</span>
+      <span class="toc-page">стр. ${item.pageIndex + 1}</span>
+    `;
+    row.addEventListener("click", () => {
+      tocEl.classList.remove("show");
+      render(item.pageIndex);
+    });
+    tocList.appendChild(row);
+  });
+  tocEl.classList.add("show");
 }
 
 function effectivePages() {
