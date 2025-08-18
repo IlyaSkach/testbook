@@ -657,6 +657,7 @@ payCloseBtn?.addEventListener("click", (e) => {
 
 payBuyBtn?.addEventListener("click", async (e) => {
   e.preventDefault();
+  if (payBuyBtn) payBuyBtn.disabled = true;
   try {
     const initDataUnsafe = tg?.initDataUnsafe;
     const user = initDataUnsafe?.user || null;
@@ -682,6 +683,7 @@ payBuyBtn?.addEventListener("click", async (e) => {
   } catch (_) {
     window.open(`https://t.me/${un}`, "_blank");
   }
+  if (payBuyBtn) setTimeout(() => (payBuyBtn.disabled = false), 1500);
 });
 
 // Touch swipe

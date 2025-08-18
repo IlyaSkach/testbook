@@ -20,7 +20,19 @@ export const handler = async (event) => {
     });
     if (uerr) throw uerr;
 
-    // Создадим заявку
+    // Не дублируем заявки: если есть последняя pending/approved — не создаём новую
+    const { data: lastReq, error: qerr } = await supa
+      .from("purchase_requests")
+      .select("id,status,created_at")
+      .eq("user_id", user_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (qerr) throw qerr;
+    if (lastReq && (lastReq.status === "pending" || lastReq.status === "approved")) {
+      return json(200, { ok: true, exists: true });
+    }
+
     const { error: rerr } = await supa.from("purchase_requests").insert({
       user_id,
       status: "pending",

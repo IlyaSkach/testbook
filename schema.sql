@@ -22,3 +22,19 @@ create table if not exists user_access (
   has_full_access boolean not null default false,
   updated_at timestamptz default now()
 );
+
+-- helper: latest request per user with username
+create or replace function get_latest_requests_with_user()
+returns table(
+  id uuid,
+  user_id bigint,
+  status text,
+  created_at timestamptz,
+  username text
+) language sql stable as $$
+  select distinct on (pr.user_id)
+    pr.id, pr.user_id, pr.status, pr.created_at, u.username
+  from purchase_requests pr
+  join users u on u.user_id = pr.user_id
+  order by pr.user_id, pr.created_at desc;
+$$;

@@ -9,11 +9,9 @@ export const handler = async (event) => {
       return json(401, { ok: false, error: "Unauthorized" });
     }
     const supa = getServiceClient();
+    // Вернём только последнюю заявку на пользователя
     const { data, error } = await supa
-      .from("purchase_requests")
-      .select("id,user_id,status,created_at, users(username)")
-      .order("created_at", { ascending: false })
-      .limit(100);
+      .rpc("get_latest_requests_with_user");
     if (error) throw error;
     return json(200, { ok: true, items: data });
   } catch (e) {
