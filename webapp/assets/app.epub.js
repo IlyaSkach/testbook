@@ -660,15 +660,20 @@ payBuyBtn?.addEventListener("click", async (e) => {
   try {
     const initDataUnsafe = tg?.initDataUnsafe;
     const user = initDataUnsafe?.user || null;
-    if (!user?.id) {
+    if (!(user?.id || user?.user_id)) {
       alert("Откройте приложение через Telegram, чтобы оформить покупку.");
       return;
     }
-    await fetch("/.netlify/functions/create-request", {
+    const res = await fetch("/.netlify/functions/create-request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user }),
     });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || d?.ok === false) {
+      alert(d?.error || "Не удалось отправить заявку. Попробуйте позже.");
+      return;
+    }
   } catch (_) {}
   // Откроем ЛС саппорта (username из конфига)
   const un = PUBLIC_CFG.support_username || "SkIlyaA";

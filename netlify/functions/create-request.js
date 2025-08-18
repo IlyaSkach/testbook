@@ -5,13 +5,15 @@ export const handler = async (event) => {
   try {
     if (event.httpMethod !== "POST") return methodNotAllowed();
     const { user } = parseJSON(event.body);
-    if (!user?.user_id) return json(400, { ok: false, error: "No user" });
+    if (!user) return json(400, { ok: false, error: "No user" });
+    const user_id = Number(user.user_id || user.id);
+    if (!user_id) return json(400, { ok: false, error: "No user" });
 
     const supa = getServiceClient();
 
     // Обновим/создадим пользователя
     const { error: uerr } = await supa.from("users").upsert({
-      user_id: user.user_id,
+      user_id,
       username: user.username || null,
       first_name: user.first_name || null,
       last_name: user.last_name || null,
@@ -20,7 +22,7 @@ export const handler = async (event) => {
 
     // Создадим заявку
     const { error: rerr } = await supa.from("purchase_requests").insert({
-      user_id: user.user_id,
+      user_id,
       status: "pending",
     });
     if (rerr) throw rerr;
