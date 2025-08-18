@@ -167,10 +167,17 @@ async function checkAccess() {
 let BOOK_PAGES = null; // итоговые страницы после пагинации
 
 function getViewportSize() {
-  return {
-    width: pageContainer.clientWidth,
-    height: pageContainer.clientHeight,
-  };
+  const headerH = headerEl?.getBoundingClientRect?.().height || 0;
+  const footerH = footerEl?.getBoundingClientRect?.().height || 0;
+  const width =
+    pageContainer.clientWidth || readerEl.clientWidth || window.innerWidth;
+  let height =
+    pageContainer.clientHeight ||
+    readerEl.clientHeight ||
+    window.innerHeight - headerH - footerH;
+  if (!height || height < 100)
+    height = Math.max(100, window.innerHeight - headerH - footerH);
+  return { width, height };
 }
 
 function createMeasureHost() {
