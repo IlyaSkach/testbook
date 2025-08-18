@@ -328,7 +328,45 @@ function buildToc(items) {
       /^(?:глава\b|эпилог\b)/i.test(it.label || "")
     );
     if (!wanted.length) wanted = improved; // запасной вариант
-    wanted.forEach((it, idx) => {
+    // Удаляем короткие дубликаты "Глава N" при наличии развернутого названия
+    const keyOf = (s) => {
+      const m = String(s || "").match(/^\s*глава\s*(\d+)\b/i);
+      if (m) return `g-${m[1]}`;
+      if (/^\s*эпилог\b/i.test(String(s || ""))) return "g-epilogue";
+      return null;
+    };
+    const bestByKey = new Map();
+    const order = [];
+    for (const it of wanted) {
+      const k = keyOf(it.label);
+      if (!k) {
+        order.push(it);
+        continue;
+      }
+      const prev = bestByKey.get(k);
+      if (!prev) {
+        bestByKey.set(k, it);
+      } else if (String(it.label).length > String(prev.label).length) {
+        bestByKey.set(k, it);
+      }
+    }
+    const deduped = [];
+    const usedKeys = new Set();
+    for (const it of wanted) {
+      const k = keyOf(it.label);
+      if (!k) {
+        deduped.push(it);
+        continue;
+      }
+      const winner = bestByKey.get(k);
+      if (winner && !usedKeys.has(k)) {
+        deduped.push(winner);
+        usedKeys.add(k);
+      }
+    }
+    const finalList = deduped.length ? deduped : wanted;
+
+    finalList.forEach((it, idx) => {
       const row = document.createElement("button");
       row.className = "toc-item";
       row.innerHTML = `
