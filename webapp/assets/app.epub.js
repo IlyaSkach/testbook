@@ -162,6 +162,7 @@ async function initEpub() {
       body: {
         fontSize: "18px",
         lineHeight: "1.6",
+        color: "#e6e6e6",
         overflowWrap: "anywhere",
         wordBreak: "break-word",
         WebkitHyphens: "auto",
@@ -170,7 +171,12 @@ async function initEpub() {
         padding: "12px 16px 16px 16px",
         maxWidth: "100%",
       },
-      p: { margin: "0 0 1em" },
+      p: { margin: "0 0 1em", color: "#e6e6e6 !important" },
+      li: { color: "#e6e6e6 !important" },
+      h1: { color: "#ffffff !important" },
+      h2: { color: "#ffffff !important" },
+      h3: { color: "#ffffff !important" },
+      a: { color: "#a3d3ff !important" },
       img: {
         maxWidth: "100% !important",
         height: "auto !important",
@@ -225,11 +231,28 @@ async function initEpub() {
       } catch (_) {}
     });
 
-    // TOC
+    // TOC: если в EPUB нет nav, соберём оглавление из spine
     try {
-      const nav = await book.loaded.navigation;
-      buildToc(nav?.toc || []);
-    } catch (_) {}
+      const navData = await book.loaded.navigation;
+      let tocItems = navData?.toc || [];
+      if (!tocItems.length) {
+        const spine = book?.spine?.items || [];
+        tocItems = spine.map((it, idx) => ({
+          href: it?.href,
+          label: it?.idref || `Глава ${idx + 1}`,
+        }));
+      }
+      buildToc(tocItems);
+    } catch (_) {
+      try {
+        const spine = book?.spine?.items || [];
+        const fallbackToc = spine.map((it, idx) => ({
+          href: it?.href,
+          label: it?.idref || `Глава ${idx + 1}`,
+        }));
+        buildToc(fallbackToc);
+      } catch (_) {}
+    }
 
     // Resize handling
     let resizeTimer = null;
