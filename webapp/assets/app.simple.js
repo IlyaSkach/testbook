@@ -136,60 +136,69 @@ function splitParagraphByWords(p, host, maxHeight) {
 }
 
 function paginateSectionsToPages(sections) {
+  // Упрощенная и безопасная текстовая пагинация по приблизительной емкости
   const normalized = sections.map(sanitize);
-  const { height } = getViewportSize();
-  const maxHeight = Math.max(0, height - 18);
-  const host = createMeasureHost();
-  const pages = [];
+  const { width, height } = getViewportSize();
+  const assumedFontPx = 18;
+  const lineHeight = 1.65;
+  const avgCharWidthPx = assumedFontPx * 0.55;
+  const charsPerLine = Math.max(20, Math.floor(width / avgCharWidthPx));
+  const linesPerPage = Math.max(
+    6,
+    Math.floor(height / (assumedFontPx * lineHeight)) - 1
+  );
+  const capacity = Math.max(300, charsPerLine * linesPerPage);
 
-  function pushPage() {
-    pages.push({ content: host.innerHTML });
-    host.innerHTML = "";
+  const pages = [];
+  const pushPage = (html) =>
+    pages.push({ type: pages.length < 2 ? "demo" : "full", content: html });
+
+  function splitByCapacity(text, remaining) {
+    const words = text.split(/(\s+)/);
+    let buf = "";
+    let i = 0;
+    while (i < words.length && (buf + words[i]).length <= remaining) {
+      buf += words[i++];
+    }
+    return [buf.trim(), words.slice(i).join("").trim()];
   }
 
-  const queue = [];
-  normalized.forEach((h) => queue.push(h));
-
-  let safetyCounter = 0;
-  const SAFETY_LIMIT = 50000;
-  while (queue.length) {
-    if (++safetyCounter > SAFETY_LIMIT) {
-      // аварийный выход, чтобы не зависать
-      break;
+  let current = "";
+  const flush = () => {
+    if (current.trim()) {
+      pushPage(`<div>${current}</div>`);
+      current = "";
     }
-    const sectionHtml = queue.shift();
-    const nodes = htmlToNodes(sectionHtml);
-    for (let j = 0; j < nodes.length; j++) {
-      const node = nodes[j];
-      if (node.nodeType === 3 && !node.textContent.trim()) continue;
-      host.appendChild(node);
-      if (host.scrollHeight > maxHeight) {
-        host.removeChild(node);
-        if (isTextParagraph(node)) {
-          const { first, rest } = splitParagraphByWords(node, host, maxHeight);
-          if (first.textContent) host.appendChild(first);
-          pushPage();
-          if (rest) queue.unshift(rest.outerHTML);
-          const remaining = Array.from(nodes.slice(j + 1)).map(
-            (n) => n.outerHTML || n.textContent
-          );
-          for (let i = remaining.length - 1; i >= 0; i--)
-            queue.unshift(remaining[i]);
-          break;
-        } else {
-          pushPage();
-          host.appendChild(node);
-          if (host.scrollHeight > maxHeight) pushPage();
+  };
+
+  for (const html of normalized) {
+    const parts = html
+      .replace(/<h[1-3][^>]*>/gi, "<p>")
+      .replace(/<\/h[1-3]>/gi, "</p>")
+      .split(/<p[^>]*>/i)
+      .map((s) => s.replace(/<\/p>/gi, "").trim())
+      .filter(Boolean);
+    for (const para of parts) {
+      const plain = para.replace(/<[^>]+>/g, "").trim();
+      if (!plain) continue;
+      if (
+        (current + `<p>${plain}</p>`).replace(/<[^>]+>/g, "").length <= capacity
+      ) {
+        current += `<p>${plain}</p>`;
+      } else {
+        let rest = plain;
+        while (rest.length) {
+          const used = current.replace(/<[^>]+>/g, "").length;
+          const [head, tail] = splitByCapacity(rest, capacity - used);
+          if (head) current += `<p>${head}</p>`;
+          flush();
+          rest = tail;
         }
       }
     }
   }
-  if (host.innerHTML.trim()) pushPage();
-  host.remove();
-  return pages.map((p, i) => ({
-    type: i < 2 ? "demo" : "full",
-    content: p.content,
-  }));
+  flush();
+  return pages;
 }
 
 async function loadChapters() {
