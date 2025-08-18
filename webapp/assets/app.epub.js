@@ -26,6 +26,10 @@ const tocBtn = document.getElementById("tocBtn");
 const tocEl = document.getElementById("toc");
 const tocClose = document.getElementById("tocClose");
 const tocList = document.getElementById("tocList");
+const fontIncBtn = document.getElementById("fontInc");
+const fontDecBtn = document.getElementById("fontDec");
+const STORE_KEY_FONT = "epub_font_percent";
+const STORE_KEY_CFI = "epub_last_cfi";
 
 function setState(state) {
   document.body.classList.remove(
@@ -105,8 +109,9 @@ async function initEpub() {
       width,
       height,
       flow: "paginated",
-      spread: "auto",
+      spread: "none",
       allowScriptedContent: false,
+      manager: "default",
     });
 
     await Promise.race([
@@ -115,15 +120,70 @@ async function initEpub() {
         setTimeout(() => rej(new Error("book ready timeout")), 8000)
       ),
     ]);
+    const lastCfi = localStorage.getItem(STORE_KEY_CFI);
     await Promise.race([
-      rendition.display(),
+      lastCfi ? rendition.display(lastCfi) : rendition.display(),
       new Promise((_, rej) =>
         setTimeout(() => rej(new Error("display timeout")), 8000)
       ),
     ]);
 
+    // Тема: увеличенный шрифт и корректные отступы, запрет выхода за край
+    rendition.themes.register("tg", {
+      "html, body": {
+        margin: 0,
+        padding: "16px",
+        background: "transparent",
+        overflow: "hidden",
+      },
+      body: {
+        fontSize: "18px",
+        lineHeight: "1.6",
+        overflowWrap: "anywhere",
+        wordBreak: "break-word",
+        WebkitHyphens: "auto",
+        hyphens: "auto",
+        boxSizing: "border-box",
+      },
+      p: { margin: "0 0 1em" },
+      img: { maxWidth: "100% !important", height: "auto !important" },
+    });
+    rendition.themes.select("tg");
+    // Доп. масштаб
+    let currentFontPercent = parseInt(
+      localStorage.getItem(STORE_KEY_FONT) || "112",
+      10
+    );
+    if (Number.isNaN(currentFontPercent)) currentFontPercent = 112;
+    rendition.themes.fontSize(currentFontPercent + "%");
+
+    // Контролы шрифта
+    function applyFont() {
+      const min = 90,
+        max = 160;
+      if (currentFontPercent < min) currentFontPercent = min;
+      if (currentFontPercent > max) currentFontPercent = max;
+      rendition.themes.fontSize(currentFontPercent + "%");
+      try {
+        localStorage.setItem(STORE_KEY_FONT, String(currentFontPercent));
+      } catch (_) {}
+    }
+    fontIncBtn?.addEventListener("click", () => {
+      currentFontPercent += 6;
+      applyFont();
+    });
+    fontDecBtn?.addEventListener("click", () => {
+      currentFontPercent -= 6;
+      applyFont();
+    });
+
     prevBtn.onclick = () => rendition.prev();
     nextBtn.onclick = () => rendition.next();
+    rendition.on("relocated", (location) => {
+      try {
+        localStorage.setItem(STORE_KEY_CFI, location?.start?.cfi || "");
+      } catch (_) {}
+    });
 
     // TOC
     try {

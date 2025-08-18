@@ -125,6 +125,15 @@ body,
   display: none;
 }
 
+.font-btn {
+  background: #1f2a44;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
 /* TOC overlay */
 .toc {
   position: fixed;
