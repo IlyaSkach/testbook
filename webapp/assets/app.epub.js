@@ -347,16 +347,6 @@ async function initEpub() {
       try {
         localStorage.setItem(STORE_KEY_CFI, location?.start?.cfi || "");
       } catch (_) {}
-      // Выводим текущий раздел для диагностики синих экранов
-      statusEl.textContent = `Раздел: ${normalizeHref(
-        location?.start?.href || ""
-      )}`;
-    });
-    rendition.on("rendered", () => {
-      // Если всё хорошо — очищаем статус
-      setTimeout(() => {
-        statusEl.textContent = "";
-      }, 300);
     });
 
     // TOC: если в EPUB нет нормального nav, соберём оглавление из spine
