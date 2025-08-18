@@ -82,7 +82,14 @@ async function initEpub() {
     if (!res.ok) throw new Error("epub fetch failed");
     const blob = await res.blob();
 
-    // 3) Грузим ePub.js (локально, затем CDN)
+    // 3) Грузим зависимости: JSZip, затем ePub.js (локально, затем CDN)
+    try {
+      await loadScript(`/assets/vendor/jszip.min.js?v=${Date.now()}`);
+    } catch (_) {
+      await loadScript(
+        "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+      );
+    }
     try {
       await loadScript(`/assets/vendor/epub.min.js?v=${Date.now()}`);
     } catch (_) {
