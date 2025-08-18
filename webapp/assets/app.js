@@ -58,8 +58,18 @@ btnRead?.addEventListener("click", () => {
   statusEl.textContent = "Загрузка книги...";
   setTimeout(async () => {
     if (!BOOK_SECTIONS) await loadBookSections();
-    // Режим: страницы с тап-навигацией, без скролла
-    BOOK_PAGES = paginateSectionsToPages(BOOK_SECTIONS);
+    // подождём раскладки, чтобы размеры контейнера были корректны
+    await new Promise((r) => requestAnimationFrame(r));
+    try {
+      // Режим: страницы с тап-навигацией, без скролла
+      BOOK_PAGES = paginateSectionsToPages(BOOK_SECTIONS || []);
+    } catch (e) {
+      dbg("paginate error", e?.message);
+      BOOK_PAGES = (BOOK_SECTIONS || []).map((html, i) => ({
+        type: i < 2 ? "demo" : "full",
+        content: html,
+      }));
+    }
     readerEl.classList.remove("mode-chapter");
     render(0);
   }, 0);
