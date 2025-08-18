@@ -5,5 +5,3 @@ export const handler = async () => {
   const price = Number(process.env.PRICE_RUB || 555);
   return json(200, { ok: true, support_username: support, price_rub: price });
 };
-
-

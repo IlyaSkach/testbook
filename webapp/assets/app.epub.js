@@ -80,11 +80,14 @@ async function initEpub() {
   try {
     // 1) Получим публичную конфигурацию (цена и username) и проверим доступ
     try {
-      const cfgRes = await fetch("/.netlify/functions/public-config", { cache: "no-store" });
+      const cfgRes = await fetch("/.netlify/functions/public-config", {
+        cache: "no-store",
+      });
       const cfg = await cfgRes.json();
       if (cfg?.ok) PUBLIC_CFG = cfg;
       const priceText = document.getElementById("priceText");
-      if (priceText) priceText.textContent = `Купить за ${PUBLIC_CFG.price_rub} ₽`;
+      if (priceText)
+        priceText.textContent = `Купить за ${PUBLIC_CFG.price_rub} ₽`;
     } catch (_) {}
     try {
       const initDataUnsafe = tg?.initDataUnsafe;
@@ -275,7 +278,8 @@ async function initEpub() {
           label: it?.idref || `Глава ${idx + 1}`,
         }));
       }
-      FIRST_HREF = (book?.spine?.items?.[0]?.href) || tocItems?.[0]?.href || FIRST_HREF;
+      FIRST_HREF =
+        book?.spine?.items?.[0]?.href || tocItems?.[0]?.href || FIRST_HREF;
       buildToc(tocItems);
     } catch (_) {
       try {
@@ -284,7 +288,8 @@ async function initEpub() {
           href: it?.href,
           label: it?.idref || `Глава ${idx + 1}`,
         }));
-        FIRST_HREF = (book?.spine?.items?.[0]?.href) || fallbackToc?.[0]?.href || FIRST_HREF;
+        FIRST_HREF =
+          book?.spine?.items?.[0]?.href || fallbackToc?.[0]?.href || FIRST_HREF;
         buildToc(fallbackToc);
       } catch (_) {}
     }
@@ -304,7 +309,10 @@ async function initEpub() {
     enforceDemo();
     // Показ кнопки покупки только в демо
     if (buyBtn) buyBtn.classList.toggle("hidden", !demoMode);
-    buyBtn?.addEventListener("click", (e) => { e.preventDefault(); showPaywall(); });
+    buyBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      showPaywall();
+    });
     if (createdUrl) {
       // освободим URL позже
       setTimeout(() => URL.revokeObjectURL(createdUrl), 15000);

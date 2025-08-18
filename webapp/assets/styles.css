@@ -142,8 +142,12 @@ body,
   display: none;
   z-index: 2000;
 }
-.toc.hidden { display: none; }
-.toc.show { display: block; }
+.toc.hidden {
+  display: none;
+}
+.toc.show {
+  display: block;
+}
 .toc .toc-inner {
   position: absolute;
   left: 0;
