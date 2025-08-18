@@ -158,7 +158,7 @@ async function initEpub() {
     await Promise.race([
       book.ready,
       new Promise((_, rej) =>
-        setTimeout(() => rej(new Error("book ready timeout")), 8000)
+        setTimeout(() => rej(new Error("book ready timeout")), 20000)
       ),
     ]);
     // Попробуем открыть сохранённую позицию; если её раздела нет — очищаем и открываем начало
@@ -166,12 +166,13 @@ async function initEpub() {
     const startHref = nav?.toc?.[0]?.href || undefined;
     const lastCfi = demoMode ? null : localStorage.getItem(STORE_KEY_CFI);
     let opened = false;
+    let initialDisplayed = false;
     if (lastCfi) {
       try {
         await Promise.race([
-          rendition.display(lastCfi),
+          rendition.display(lastCfi).then(() => (initialDisplayed = true)),
           new Promise((_, rej) =>
-            setTimeout(() => rej(new Error("display timeout")), 8000)
+            setTimeout(() => rej(new Error("display timeout")), 20000)
           ),
         ]);
         opened = true;
@@ -184,11 +185,22 @@ async function initEpub() {
     if (!opened) {
       const target = demoMode ? (FIRST_HREF || startHref) : (startHref || undefined);
       await Promise.race([
-        target ? rendition.display(target) : rendition.display(),
+        (target ? rendition.display(target) : rendition.display()).then(() => (initialDisplayed = true)),
         new Promise((_, rej) =>
-          setTimeout(() => rej(new Error("display timeout")), 8000)
+          setTimeout(() => rej(new Error("display timeout")), 20000)
         ),
       ]);
+    }
+
+    // fallback если не отрисовалось
+    if (!initialDisplayed) {
+      try {
+        const fallbackHref = FIRST_HREF || book?.spine?.items?.[0]?.href || null;
+        if (fallbackHref) {
+          await rendition.display(fallbackHref);
+          initialDisplayed = true;
+        }
+      } catch (_) {}
     }
 
     // Тема: увеличенный шрифт и корректные отступы, запрет выхода за край
@@ -314,6 +326,9 @@ async function initEpub() {
     });
 
     statusEl.textContent = "EPUB";
+    rendition.on("rendered", () => {
+      statusEl.textContent = "";
+    });
     // Применим демо-ограничение
     enforceDemo();
     // UI-индикатор доступа и видимость оглавления
