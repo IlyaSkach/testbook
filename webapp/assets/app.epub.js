@@ -28,6 +28,7 @@ const tocClose = document.getElementById("tocClose");
 const tocList = document.getElementById("tocList");
 const fontIncBtn = document.getElementById("fontInc");
 const fontDecBtn = document.getElementById("fontDec");
+const accessLabel = document.getElementById("accessLabel");
 const paywallEl = document.getElementById("paywall");
 const payBuyBtn = document.getElementById("payBuy");
 const payCloseBtn = document.getElementById("payClose");
@@ -156,7 +157,7 @@ async function initEpub() {
     // Попробуем открыть сохранённую позицию; если её раздела нет — очищаем и открываем начало
     const nav = await book.loaded.navigation.catch(() => null);
     const startHref = nav?.toc?.[0]?.href || undefined;
-    const lastCfi = localStorage.getItem(STORE_KEY_CFI);
+    const lastCfi = demoMode ? null : localStorage.getItem(STORE_KEY_CFI);
     let opened = false;
     if (lastCfi) {
       try {
@@ -175,7 +176,8 @@ async function initEpub() {
     }
     if (!opened) {
       await Promise.race([
-        startHref ? rendition.display(startHref) : rendition.display(),
+        // В демо всегда начинаем с начала
+        startHref && !demoMode ? rendition.display(startHref) : rendition.display(),
         new Promise((_, rej) =>
           setTimeout(() => rej(new Error("display timeout")), 8000)
         ),
@@ -307,12 +309,9 @@ async function initEpub() {
     statusEl.textContent = "EPUB";
     // Применим демо-ограничение
     enforceDemo();
-    // Показ кнопки покупки только в демо
-    if (buyBtn) buyBtn.classList.toggle("hidden", !demoMode);
-    buyBtn?.addEventListener("click", (e) => {
-      e.preventDefault();
-      showPaywall();
-    });
+    // UI-индикатор доступа и видимость оглавления
+    if (accessLabel) accessLabel.textContent = demoMode ? "Демо версия" : "Полная версия";
+    if (tocBtn) tocBtn.style.display = demoMode ? "none" : "inline-block";
     if (createdUrl) {
       // освободим URL позже
       setTimeout(() => URL.revokeObjectURL(createdUrl), 15000);
@@ -468,6 +467,10 @@ payBuyBtn?.addEventListener("click", async (e) => {
   try {
     const initDataUnsafe = tg?.initDataUnsafe;
     const user = initDataUnsafe?.user || null;
+    if (!user?.id) {
+      alert("Откройте приложение через Telegram, чтобы оформить покупку.");
+      return;
+    }
     await fetch("/.netlify/functions/create-request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
