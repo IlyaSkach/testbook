@@ -98,7 +98,7 @@ tocClose?.addEventListener("click", () => tocEl.classList.remove("show"));
 setState("state-onboarding");
 
 let currentIndex = 0;
-let hasFullAccess = false;
+let hasFullAccess = true; // временно включаем полный доступ, чтобы не резать контент
 const pageContainer = document.getElementById("page-container");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
