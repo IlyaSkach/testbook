@@ -77,6 +77,8 @@ let demoMode = true; // если нет доступа — показываем 
 let FIRST_HREF = null;
 let paywallShownOnce = false;
 let demoArmed = false;
+let CH1_HREF = null;
+const ALLOWED_DEMO_HREFS = new Set();
 
 async function initEpub() {
   statusEl.textContent = "Загрузка EPUB...";
@@ -169,6 +171,14 @@ async function initEpub() {
       const picked = await selectFirstChapterHref(book, nav);
       if (picked) FIRST_HREF = picked;
     } catch (_) {}
+    // Найдём явно "ГЛАВА 1" и разрешим её в демо дополнительно
+    try {
+      CH1_HREF = await findHrefByHeading(book, nav, /^\s*ГЛАВА\s*1\b/i);
+    } catch (_) {}
+    // Заполним whitelist демо
+    ALLOWED_DEMO_HREFS.clear();
+    if (FIRST_HREF) ALLOWED_DEMO_HREFS.add(normalizeHref(FIRST_HREF));
+    if (CH1_HREF) ALLOWED_DEMO_HREFS.add(normalizeHref(CH1_HREF));
     const lastCfi = demoMode ? null : localStorage.getItem(STORE_KEY_CFI);
     let opened = false;
     let initialDisplayed = false;
@@ -188,7 +198,9 @@ async function initEpub() {
       }
     }
     if (!opened) {
-      const target = demoMode ? (FIRST_HREF || startHref) : (startHref || undefined);
+      const target = demoMode
+        ? FIRST_HREF || startHref
+        : startHref || undefined;
       await Promise.race([
         (target ? rendition.display(target) : rendition.display()).then(
           () => (initialDisplayed = true)
@@ -318,7 +330,10 @@ async function initEpub() {
         }));
       }
       FIRST_HREF =
-        FIRST_HREF || book?.spine?.items?.[0]?.href || tocItems?.[0]?.href || null;
+        FIRST_HREF ||
+        book?.spine?.items?.[0]?.href ||
+        tocItems?.[0]?.href ||
+        null;
       buildToc(tocItems);
     } catch (_) {
       try {
@@ -328,7 +343,10 @@ async function initEpub() {
           label: it?.idref || `Глава ${idx + 1}`,
         }));
         FIRST_HREF =
-          FIRST_HREF || book?.spine?.items?.[0]?.href || fallbackToc?.[0]?.href || null;
+          FIRST_HREF ||
+          book?.spine?.items?.[0]?.href ||
+          fallbackToc?.[0]?.href ||
+          null;
         buildToc(fallbackToc);
       } catch (_) {}
     }
@@ -491,11 +509,11 @@ function enforceDemo() {
       const first = normalizeHref(FIRST_HREF || book?.spine?.items?.[0]?.href);
       if (!first || !curHref) return;
       // Активируем ограничение только после первого открытия первой главы
-      if (curHref === first && !demoArmed) {
+      if ((curHref === first || ALLOWED_DEMO_HREFS.has(curHref)) && !demoArmed) {
         demoArmed = true;
         return;
       }
-      if (curHref !== first) {
+      if (!ALLOWED_DEMO_HREFS.has(curHref)) {
         // Если ещё не "armed" — мягко вернём без пейволла (инициализация)
         if (!demoArmed) {
           if (FIRST_HREF) rendition.display(FIRST_HREF);
@@ -517,7 +535,8 @@ async function selectFirstChapterHref(book, nav) {
   try {
     // 1) Сначала пробуем по nav.toc
     const toc = Array.isArray(nav?.toc) ? nav.toc : [];
-    const good = (href) => href && !/\b(cover|title|toc|nav)\b/i.test(String(href));
+    const good = (href) =>
+      href && !/\b(cover|title|toc|nav)\b/i.test(String(href));
     for (const it of toc) {
       const href = it?.href || it?.url || it?.canonical;
       if (good(href)) return href;
@@ -527,6 +546,33 @@ async function selectFirstChapterHref(book, nav) {
     for (const it of spine) {
       const href = it?.href || it?.url || it?.canonical;
       if (good(href)) return href;
+    }
+  } catch (_) {}
+  return null;
+}
+
+// Поиск раздела, где первый h1/h2 соответствует regex
+async function findHrefByHeading(book, nav, re) {
+  try {
+    const checkList = [];
+    const toc = Array.isArray(nav?.toc) ? nav.toc : [];
+    if (toc.length) {
+      for (const it of toc) checkList.push(it?.href || it?.url || it?.canonical);
+    }
+    const spine = book?.spine?.items || [];
+    for (const it of spine) checkList.push(it?.href || it?.url || it?.canonical);
+    for (const href of checkList) {
+      const h = href && String(href);
+      if (!h) continue;
+      try {
+        const sec = await book.load(h);
+        const html = await sec?.render().then((r) => r?.document?.body?.innerHTML || "");
+        const m = html && html.match(/<(h1|h2)[^>]*>([\s\S]*?)<\/\1>/i);
+        if (m) {
+          const title = m[2].replace(/<[^>]+>/g, "").trim();
+          if (re.test(title)) return h;
+        }
+      } catch (_) {}
     }
   } catch (_) {}
   return null;
