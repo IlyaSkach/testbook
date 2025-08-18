@@ -167,8 +167,8 @@ body,
   gap: 6px;
 }
 .toc-item {
-  background: #12141a;
-  border: 1px solid #1f2330;
+  background: #fff;
+  border: 1px solid #f0f0f0;
   border-radius: 10px;
   padding: 10px 12px;
   display: flex;
@@ -182,6 +182,7 @@ body,
 }
 .toc-item .toc-title {
   flex: 1;
+  color: #fff;
 }
 .toc-item .toc-page {
   opacity: 0.7;

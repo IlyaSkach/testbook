@@ -231,11 +231,14 @@ async function initEpub() {
       } catch (_) {}
     });
 
-    // TOC: если в EPUB нет nav, соберём оглавление из spine
+    // TOC: если в EPUB нет нормального nav, соберём оглавление из spine
     try {
       const navData = await book.loaded.navigation;
-      let tocItems = navData?.toc || [];
-      if (!tocItems.length) {
+      let tocItems = Array.isArray(navData?.toc) ? navData.toc.slice() : [];
+      const badNav =
+        !tocItems.length ||
+        tocItems.every((it) => String(it?.href || "").match(/\b(toc|nav)\b/i));
+      if (badNav) {
         const spine = book?.spine?.items || [];
         tocItems = spine.map((it, idx) => ({
           href: it?.href,
