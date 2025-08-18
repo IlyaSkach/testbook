@@ -79,6 +79,9 @@ let paywallShownOnce = false;
 let demoArmed = false;
 let CH1_HREF = null;
 const ALLOWED_DEMO_HREFS = new Set();
+let demoTapCount = 0;
+const DEMO_TAP_LIMIT = 10; // максимум тапов в демо
+let demoBlockedByTapLimit = false;
 
 async function initEpub() {
   statusEl.textContent = "Загрузка EPUB...";
@@ -197,7 +200,9 @@ async function initEpub() {
     // Авто-добавим следующий раздел после FIRST_HREF
     try {
       const spine = book?.spine?.items || [];
-      const idx = spine.findIndex((it) => normalizeHref(it?.href) === normalizeHref(FIRST_HREF));
+      const idx = spine.findIndex(
+        (it) => normalizeHref(it?.href) === normalizeHref(FIRST_HREF)
+      );
       if (idx >= 0 && spine[idx + 1]?.href) {
         ALLOWED_DEMO_HREFS.add(normalizeHref(spine[idx + 1].href));
       }
@@ -316,10 +321,26 @@ async function initEpub() {
 
     prevBtn.onclick = (e) => {
       e.stopPropagation();
+      if (demoMode) {
+        if (demoBlockedByTapLimit) return showPaywall();
+        demoTapCount++;
+        if (demoTapCount >= DEMO_TAP_LIMIT) {
+          demoBlockedByTapLimit = true;
+          return showPaywall();
+        }
+      }
       rendition.prev();
     };
     nextBtn.onclick = (e) => {
       e.stopPropagation();
+      if (demoMode) {
+        if (demoBlockedByTapLimit) return showPaywall();
+        demoTapCount++;
+        if (demoTapCount >= DEMO_TAP_LIMIT) {
+          demoBlockedByTapLimit = true;
+          return showPaywall();
+        }
+      }
       rendition.next();
     };
     rendition.on("relocated", (location) => {
@@ -671,6 +692,14 @@ pageContainer.addEventListener("touchend", (e) => {
   if (touchStartX == null) return;
   const dx = e.changedTouches[0].clientX - touchStartX;
   if (Math.abs(dx) > 40) {
+    if (demoMode) {
+      if (demoBlockedByTapLimit) return showPaywall();
+      demoTapCount++;
+      if (demoTapCount >= DEMO_TAP_LIMIT) {
+        demoBlockedByTapLimit = true;
+        return showPaywall();
+      }
+    }
     if (dx < 0) rendition?.next();
     else rendition?.prev();
   }
