@@ -345,27 +345,41 @@ async function initEpub() {
       applyFont();
     });
 
-    prevBtn.onclick = (e) => {
-      e.stopPropagation();
-      if (!canNavigate()) return;
+    const EXIT_MS = 220;
+    const ENTER_MS = 380;
+    function animateExit() {
       try {
         pageContainer.classList.remove("flip-enter", "flip-exit");
         void pageContainer.offsetWidth;
         pageContainer.classList.add("flip-exit");
-        setTimeout(() => pageContainer.classList.remove("flip-exit"), 400);
+        setTimeout(() => pageContainer.classList.remove("flip-exit"), EXIT_MS + 50);
       } catch (_) {}
-      rendition.prev();
-    };
-    nextBtn.onclick = (e) => {
-      e.stopPropagation();
-      if (!canNavigate()) return;
+    }
+    function animateEnter() {
       try {
         pageContainer.classList.remove("flip-enter", "flip-exit");
         void pageContainer.offsetWidth;
         pageContainer.classList.add("flip-enter");
-        setTimeout(() => pageContainer.classList.remove("flip-enter"), 400);
+        setTimeout(() => pageContainer.classList.remove("flip-enter"), ENTER_MS + 50);
       } catch (_) {}
-      rendition.next();
+    }
+    prevBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (!canNavigate()) return;
+      animateExit();
+      setTimeout(() => {
+        rendition.prev();
+        animateEnter();
+      }, EXIT_MS);
+    };
+    nextBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (!canNavigate()) return;
+      animateExit();
+      setTimeout(() => {
+        rendition.next();
+        animateEnter();
+      }, EXIT_MS);
     };
     rendition.on("relocated", (location) => {
       try {
