@@ -420,6 +420,20 @@ function renderSection(i) {
     "page-inner flip-enter" + (onlyFullImg ? " no-pad" : " chapter");
   w.innerHTML = html;
   pageContainer.appendChild(w);
+
+  // Проставим режим на контейнере, чтобы скрыть нав-зоны
+  readerEl.classList.add("mode-chapter");
+
+  // Добавим динамический нижний паддинг = высоте футера, чтобы текст не обрезался
+  requestAnimationFrame(() => {
+    try {
+      const footerH = footerEl?.getBoundingClientRect?.().height || 0;
+      if (!onlyFullImg && footerH && w.classList.contains("chapter")) {
+        const pad = Math.max(112, Math.ceil(footerH + 24));
+        w.style.paddingBottom = pad + "px";
+      }
+    } catch (_) {}
+  });
 }
 
 prevBtn.addEventListener("click", () => renderSection(currentIndex - 1));

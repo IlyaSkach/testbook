@@ -266,6 +266,11 @@ body,
   opacity: 0;
 }
 
+/* В режиме глав скрываем нав-зоны, чтобы не блокировали вертикальный скролл */
+.reader.mode-chapter .nav-btn {
+  display: none;
+}
+
 #status {
   font-size: 12px;
   color: #9aa4b2;
@@ -443,4 +448,6 @@ body.state-reader .app-footer {
 .page-inner.chapter {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  /* базовый запас под футер; точное значение докинем из JS */
+  padding-bottom: 112px;
 }
