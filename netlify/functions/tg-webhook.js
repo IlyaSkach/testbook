@@ -1,15 +1,18 @@
 import { json, methodNotAllowed, parseJSON } from "./_utils.js";
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
 const WEBAPP_URL = process.env.WEBAPP_URL || "https://booktesting.netlify.app";
 
 async function tg(method, payload) {
   if (!BOT_TOKEN) throw new Error("Missing TELEGRAM_BOT_TOKEN");
-  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  const res = await fetch(
+    `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data?.ok === false) {
     throw new Error(data?.description || `TG API error: ${res.status}`);
@@ -41,8 +44,7 @@ export const handler = async (event) => {
       };
       await tg("sendMessage", {
         chat_id: chatId,
-        text:
-          "Добро пожаловать в RizyLand! Откройте приложение кнопкой ниже. Если кнопка не работает, используйте меню бота → WebApp.",
+        text: "Добро пожаловать в RizyLand! Откройте приложение кнопкой ниже. Если кнопка не работает, используйте меню бота → WebApp.",
         reply_markup,
       });
     }
@@ -52,5 +54,3 @@ export const handler = async (event) => {
     return json(200, { ok: false, error: e.message });
   }
 };
-
-
