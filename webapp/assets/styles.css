@@ -140,11 +140,22 @@ body,
   font-weight: 700;
 }
 
-.segmented { display:flex; gap:6px; margin-left:8px; }
-.seg-btn {
-  background:#1f2a44; color:#fff; border:none; border-radius:10px; padding:8px 10px; font-weight:700;
+.segmented {
+  display: flex;
+  gap: 6px;
+  margin-left: 8px;
 }
-.seg-btn.active { background:#2563eb; }
+.seg-btn {
+  background: #1f2a44;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-weight: 700;
+}
+.seg-btn.active {
+  background: #2563eb;
+}
 
 /* TOC overlay */
 .toc {
@@ -280,6 +291,7 @@ body,
   border: none;
   opacity: 0;
   z-index: 999; /* поверх iframe EPUB */
+  display: block;
 }
 .nav-btn.left {
   left: 0;

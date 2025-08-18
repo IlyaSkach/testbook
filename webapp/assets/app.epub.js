@@ -712,8 +712,12 @@ btnRead?.addEventListener("click", async () => {
 });
 
 function updateNavModeUI() {
-  if (navModeTapBtn) navModeTapBtn.classList.toggle("active", navMode === "tap");
-  if (navModeSwipeBtn) navModeSwipeBtn.classList.toggle("active", navMode === "swipe");
+  if (navModeTapBtn)
+    navModeTapBtn.classList.toggle("active", navMode === "tap");
+  if (navModeSwipeBtn)
+    navModeSwipeBtn.classList.toggle("active", navMode === "swipe");
+  if (prevBtn) prevBtn.style.display = navMode === "tap" ? "block" : "none";
+  if (nextBtn) nextBtn.style.display = navMode === "tap" ? "block" : "none";
 }
 updateNavModeUI();
 navModeTapBtn?.addEventListener("click", () => {
