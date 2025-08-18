@@ -277,8 +277,8 @@ btnRead?.addEventListener("click", async () => {
   setState("state-reader");
   try {
     if (FORCED_MODE === "epub") {
-      await initEpubReader();
-      return;
+      const ok = await initEpubReader();
+      if (ok) return;
     }
     try {
       const head = await fetch(`/assets/book.epub?v=${Date.now()}`, {
@@ -286,8 +286,8 @@ btnRead?.addEventListener("click", async () => {
         cache: "no-store",
       });
       if (head.ok) {
-        await initEpubReader();
-        return;
+        const ok = await initEpubReader();
+        if (ok) return;
       }
     } catch (_) {}
     const sections = await loadChapters();
@@ -314,6 +314,17 @@ setState("state-onboarding");
 async function initEpubReader() {
   statusEl.textContent = "Загрузка EPUB...";
   try {
+    // проверим наличие файла заранее
+    try {
+      const head = await fetch(`/assets/book.epub?v=${Date.now()}`, {
+        method: "HEAD",
+        cache: "no-store",
+      });
+      if (!head.ok) {
+        statusEl.textContent = "EPUB не найден";
+        return false;
+      }
+    } catch (_) {}
     // сначала пробуем локальную копию, потом CDN
     try {
       await loadScript("/assets/vendor/epub.min.js?v=" + Date.now());
@@ -323,6 +334,7 @@ async function initEpubReader() {
     const src = "/assets/book.epub";
     const book = window.ePub(src);
     const { width, height } = getViewportSize();
+    pageContainer.innerHTML = "";
     const rendition = book.renderTo("page-container", {
       width,
       height,
@@ -330,15 +342,23 @@ async function initEpubReader() {
       spread: "auto",
       allowScriptedContent: false,
     });
-    await rendition.display();
+    // таймаут на init
+    await Promise.race([
+      rendition.display(),
+      new Promise((_, rej) =>
+        setTimeout(() => rej(new Error("display timeout")), 7000)
+      ),
+    ]);
     prevBtn.onclick = () => rendition.prev();
     nextBtn.onclick = () => rendition.next();
     rendition.on("rendered", () => {
       statusEl.textContent = "EPUB";
     });
+    return true;
   } catch (e) {
     console.error("EPUB error", e);
     statusEl.textContent = "EPUB не найден";
+    return false;
   }
 }
 
