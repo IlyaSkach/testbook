@@ -168,7 +168,12 @@ function splitParagraphByWords(p, host, maxHeight) {
     if (host.scrollHeight > maxHeight) {
       // откатываем последнее добавленное слово/пробел
       first.textContent = first.textContent.slice(0, -words[i - 1].length);
-      rest.textContent = words.slice(i - 1).join("");
+      // срежем хвостовые пробелы у первой части, чтобы избежать "пустых" строк
+      first.textContent = first.textContent.replace(/\s+$/, "");
+      // и уберем ведущие пробелы у продолжения
+      const remainder = words.slice(i - 1);
+      if (remainder.length && /^\s+$/.test(remainder[0])) remainder.shift();
+      rest.textContent = remainder.join("");
       break;
     }
   }
@@ -209,7 +214,9 @@ function paginateSectionsToPages(sections) {
   // нормализуем сложный HTML из DOCX, чтобы корректно бить по словам
   const normalized = sections.map(sanitizeSection);
   const { height } = getViewportSize();
-  const maxHeight = height; // учитываем паддинги класса page-inner
+  // небольшой запас, чтобы исключить визуальный переполн на реальном экране (округления, трансформации)
+  const HEIGHT_FUDGE_PX = 18;
+  const maxHeight = Math.max(0, height - HEIGHT_FUDGE_PX);
   const host = createMeasureHost();
   const pages = [];
 
