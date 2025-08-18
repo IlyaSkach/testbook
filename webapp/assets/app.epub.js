@@ -29,6 +29,8 @@ const tocList = document.getElementById("tocList");
 const fontIncBtn = document.getElementById("fontInc");
 const fontDecBtn = document.getElementById("fontDec");
 const accessLabel = document.getElementById("accessLabel");
+const navModeTapBtn = document.getElementById("navModeTap");
+const navModeSwipeBtn = document.getElementById("navModeSwipe");
 const paywallEl = document.getElementById("paywall");
 const payBuyBtn = document.getElementById("payBuy");
 const payCloseBtn = document.getElementById("payClose");
@@ -82,6 +84,8 @@ const ALLOWED_DEMO_HREFS = new Set();
 let demoTapCount = 0;
 const DEMO_TAP_LIMIT = 10; // максимум тапов в демо
 let demoBlockedByTapLimit = false;
+const STORE_KEY_NAV = "nav_mode"; // tap | swipe
+let navMode = localStorage.getItem(STORE_KEY_NAV) || "tap";
 
 async function initEpub() {
   statusEl.textContent = "Загрузка EPUB...";
@@ -319,28 +323,29 @@ async function initEpub() {
       applyFont();
     });
 
+    function canNavigate() {
+      if (!demoMode) return true;
+      if (demoBlockedByTapLimit) {
+        showPaywall();
+        return false;
+      }
+      demoTapCount++;
+      if (demoTapCount >= DEMO_TAP_LIMIT) {
+        demoBlockedByTapLimit = true;
+        showPaywall();
+        return false;
+      }
+      return true;
+    }
+
     prevBtn.onclick = (e) => {
       e.stopPropagation();
-      if (demoMode) {
-        if (demoBlockedByTapLimit) return showPaywall();
-        demoTapCount++;
-        if (demoTapCount >= DEMO_TAP_LIMIT) {
-          demoBlockedByTapLimit = true;
-          return showPaywall();
-        }
-      }
+      if (!canNavigate()) return;
       rendition.prev();
     };
     nextBtn.onclick = (e) => {
       e.stopPropagation();
-      if (demoMode) {
-        if (demoBlockedByTapLimit) return showPaywall();
-        demoTapCount++;
-        if (demoTapCount >= DEMO_TAP_LIMIT) {
-          demoBlockedByTapLimit = true;
-          return showPaywall();
-        }
-      }
+      if (!canNavigate()) return;
       rendition.next();
     };
     rendition.on("relocated", (location) => {
@@ -688,15 +693,8 @@ pageContainer.addEventListener(
 pageContainer.addEventListener("touchend", (e) => {
   if (touchStartX == null) return;
   const dx = e.changedTouches[0].clientX - touchStartX;
-  if (Math.abs(dx) > 40) {
-    if (demoMode) {
-      if (demoBlockedByTapLimit) return showPaywall();
-      demoTapCount++;
-      if (demoTapCount >= DEMO_TAP_LIMIT) {
-        demoBlockedByTapLimit = true;
-        return showPaywall();
-      }
-    }
+  if (navMode === "swipe" && Math.abs(dx) > 40) {
+    if (!canNavigate()) return;
     if (dx < 0) rendition?.next();
     else rendition?.prev();
   }
@@ -711,6 +709,22 @@ btnRead?.addEventListener("click", async () => {
   setState("state-reader");
   readerEl.classList.add("mode-epub");
   await initEpub();
+});
+
+function updateNavModeUI() {
+  if (navModeTapBtn) navModeTapBtn.classList.toggle("active", navMode === "tap");
+  if (navModeSwipeBtn) navModeSwipeBtn.classList.toggle("active", navMode === "swipe");
+}
+updateNavModeUI();
+navModeTapBtn?.addEventListener("click", () => {
+  navMode = "tap";
+  localStorage.setItem(STORE_KEY_NAV, navMode);
+  updateNavModeUI();
+});
+navModeSwipeBtn?.addEventListener("click", () => {
+  navMode = "swipe";
+  localStorage.setItem(STORE_KEY_NAV, navMode);
+  updateNavModeUI();
 });
 
 setState("state-onboarding");
