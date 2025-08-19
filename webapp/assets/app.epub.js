@@ -727,20 +727,29 @@ payBuyBtn?.addEventListener("click", async (e) => {
     if (payBuyBtn) setTimeout(() => (payBuyBtn.disabled = false), 800);
     return;
   }
-  // 1) Сначала открываем чат (в рамках пользовательского жеста)
+  // 1) Сначала открываем чат (в рамках пользовательского жеста) — каскад стратегий
   try {
     const unRaw = PUBLIC_CFG.support_username || "SkIlyaA";
     const un = String(unRaw).trim().replace(/^@+/, "");
     const tgUrl = `tg://resolve?domain=${un}`;
     const httpsUrl = `https://t.me/${un}`;
-    if (typeof tg?.openTelegramLink === "function") {
-      try { tg.openTelegramLink(tgUrl); }
-      catch { tg.openTelegramLink(httpsUrl); }
-    } else if (typeof tg?.openLink === "function") {
-      tg.openLink(httpsUrl);
-    } else {
-      window.open(httpsUrl, "_blank");
+    let opened = false;
+    if (!opened && typeof tg?.openTelegramLink === "function") {
+      try { tg.openTelegramLink(tgUrl); opened = true; } catch {}
+      if (!opened) { try { tg.openTelegramLink(httpsUrl); opened = true; } catch {} }
     }
+    if (!opened && typeof tg?.openLink === "function") {
+      try { tg.openLink(httpsUrl); opened = true; } catch {}
+    }
+    if (!opened) {
+      try { window.location.href = tgUrl; opened = true; } catch {}
+    }
+    if (!opened) {
+      const a = document.createElement("a");
+      a.href = httpsUrl; a.target = "_blank"; a.rel = "noopener";
+      document.body.appendChild(a); a.click(); a.remove(); opened = true;
+    }
+    setTimeout(() => { try { window.location.href = httpsUrl; } catch {} }, 250);
   } catch (_) {}
   hidePaywall();
   // 2) Отправляем заявку в фоне, без блокировки UI
