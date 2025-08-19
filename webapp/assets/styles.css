@@ -12,6 +12,7 @@ body {
   background: #0536d4;
   color: #e6e6e6;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  touch-action: manipulation; /* prevent double-tap zoom on iOS */
 }
 html,
 body,

@@ -9,6 +9,19 @@ try {
 } catch (_) {}
 
 document.addEventListener("contextmenu", (e) => e.preventDefault());
+// iOS double-tap zoom guard
+let lastTapTime = 0;
+document.addEventListener(
+  "touchend",
+  (e) => {
+    const now = Date.now();
+    if (now - lastTapTime < 350) {
+      e.preventDefault();
+    }
+    lastTapTime = now;
+  },
+  { passive: false }
+);
 
 // UI refs
 const onbStart = document.getElementById("onbStart");
@@ -237,10 +250,12 @@ async function initEpub() {
     let initialDisplayed = false;
     // Если демо — разрешим резюмирование только в рамках доступных глав
     if (demoMode && lastCfi) {
-      const firstNorm = normalizeHref(FIRST_HREF || book?.spine?.items?.[0]?.href);
+      const firstNorm = normalizeHref(
+        FIRST_HREF || book?.spine?.items?.[0]?.href
+      );
       const allowedNow = new Set([firstNorm]);
       // если поздее добавим ALLOWED_DEMO_HREFS — дополним после инициализации TOC
-      if (!lastHrefNorm || (!allowedNow.has(lastHrefNorm))) {
+      if (!lastHrefNorm || !allowedNow.has(lastHrefNorm)) {
         lastCfi = null;
       }
     }
