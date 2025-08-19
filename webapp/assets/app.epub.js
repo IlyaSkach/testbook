@@ -236,10 +236,14 @@ async function initEpub() {
     // Разрешим все разделы от первой главы до главы 5 включительно
     try {
       const spine = book?.spine?.items || [];
-      const firstIdx = spine.findIndex((it) => normalizeHref(it?.href) === normalizeHref(FIRST_HREF));
+      const firstIdx = spine.findIndex(
+        (it) => normalizeHref(it?.href) === normalizeHref(FIRST_HREF)
+      );
       let lastIdx = firstIdx;
       if (CH5_HREF) {
-        const idx5 = spine.findIndex((it) => normalizeHref(it?.href) === normalizeHref(CH5_HREF));
+        const idx5 = spine.findIndex(
+          (it) => normalizeHref(it?.href) === normalizeHref(CH5_HREF)
+        );
         if (idx5 >= 0) lastIdx = idx5;
       }
       if (firstIdx >= 0) {
@@ -479,10 +483,12 @@ async function initEpub() {
     });
     // Применим демо-ограничение
     enforceDemo();
-    // UI-индикатор доступа и видимость оглавления
+    // UI-индикатор доступа, оглавления и inline-кнопки купить
     if (accessLabel)
       accessLabel.textContent = demoMode ? "Демо версия" : "Полная версия";
-    if (tocBtn) tocBtn.style.display = demoMode ? "none" : "inline-block";
+    if (tocBtn) tocBtn.style.display = demoMode ? "inline-block" : "inline-block";
+    const buyInlineBtn = document.getElementById("buyInline");
+    if (buyInlineBtn) buyInlineBtn.classList.toggle("hidden", !demoMode);
     if (createdUrl) {
       // освободим URL позже
       setTimeout(() => URL.revokeObjectURL(createdUrl), 15000);
@@ -577,7 +583,16 @@ function buildToc(items) {
         usedKeys.add(k);
       }
     }
-    const finalList = deduped.length ? deduped : wanted;
+    let finalList = deduped.length ? deduped : wanted;
+    if (demoMode) {
+      const upto = [];
+      for (const it of finalList) {
+        upto.push(it);
+        const lbl = String(it.label || "");
+        if (/^\s*глава\s*5\b/i.test(lbl)) break;
+      }
+      finalList = upto;
+    }
 
     finalList.forEach((it, idx) => {
       const row = document.createElement("button");
@@ -623,9 +638,13 @@ function enforceDemo() {
       const allowed = ALLOWED_DEMO_HREFS.has(curHref);
       if (!allowed) {
         // Блокируем переход дальше и предлагаем купить
-        const lastAllowed = Array.from(ALLOWED_DEMO_HREFS).slice(-1)[0] || FIRST_HREF;
+        const lastAllowed =
+          Array.from(ALLOWED_DEMO_HREFS).slice(-1)[0] || FIRST_HREF;
         if (lastAllowed) rendition.display(lastAllowed);
-        if (!paywallShownOnce) { paywallShownOnce = true; showPaywall(); }
+        if (!paywallShownOnce) {
+          paywallShownOnce = true;
+          showPaywall();
+        }
       }
     } catch (_) {}
   });
@@ -706,6 +725,9 @@ function hidePaywall() {
 payCloseBtn?.addEventListener("click", (e) => {
   e.preventDefault();
   hidePaywall();
+  // показываем inline-кнопку покупки в футере в демо
+  const buyInline = document.getElementById("buyInline");
+  if (demoMode && buyInline) buyInline.classList.remove("hidden");
 });
 
 payBuyBtn?.addEventListener("click", async (e) => {
@@ -778,6 +800,11 @@ payBuyBtn?.addEventListener("click", async (e) => {
     } catch (_) {}
   })();
   if (payBuyBtn) setTimeout(() => (payBuyBtn.disabled = false), 1200);
+});
+
+// Inline кнопка покупки в футере: та же логика, что и в модалке
+document.getElementById("buyInline")?.addEventListener("click", (e) => {
+  payBuyBtn?.dispatchEvent(new Event("click", { bubbles: true }));
 });
 
 // Touch swipe
