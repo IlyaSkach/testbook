@@ -729,11 +729,18 @@ payBuyBtn?.addEventListener("click", async (e) => {
   }
   // 1) Сначала открываем чат (в рамках пользовательского жеста)
   try {
-    const un = encodeURIComponent(PUBLIC_CFG.support_username || "SkIlyaA");
-    const url = `https://t.me/${un}`;
-    if (typeof tg?.openTelegramLink === "function") tg.openTelegramLink(url);
-    else if (typeof tg?.openLink === "function") tg.openLink(url);
-    else window.open(url, "_blank");
+    const unRaw = PUBLIC_CFG.support_username || "SkIlyaA";
+    const un = String(unRaw).trim().replace(/^@+/, "");
+    const tgUrl = `tg://resolve?domain=${un}`;
+    const httpsUrl = `https://t.me/${un}`;
+    if (typeof tg?.openTelegramLink === "function") {
+      try { tg.openTelegramLink(tgUrl); }
+      catch { tg.openTelegramLink(httpsUrl); }
+    } else if (typeof tg?.openLink === "function") {
+      tg.openLink(httpsUrl);
+    } else {
+      window.open(httpsUrl, "_blank");
+    }
   } catch (_) {}
   hidePaywall();
   // 2) Отправляем заявку в фоне, без блокировки UI
