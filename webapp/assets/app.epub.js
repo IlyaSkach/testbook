@@ -720,32 +720,34 @@ payCloseBtn?.addEventListener("click", (e) => {
 payBuyBtn?.addEventListener("click", async (e) => {
   e.preventDefault();
   if (payBuyBtn) payBuyBtn.disabled = true;
-  try {
-    const initDataUnsafe = tg?.initDataUnsafe;
-    const user = initDataUnsafe?.user || null;
-    if (!(user?.id || user?.user_id)) {
-      alert("Откройте приложение через Telegram, чтобы оформить покупку.");
-      return;
-    }
-    const res = await fetch("/.netlify/functions/create-request", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user }),
-    });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok || d?.ok === false) {
-      alert(d?.error || "Не удалось отправить заявку. Попробуйте позже.");
-      return;
-    }
-  } catch (_) {}
-  // Откроем ЛС саппорта (username из конфига)
-  const un = PUBLIC_CFG.support_username || "SkIlyaA";
-  try {
-    tg?.openTelegramLink?.(`https://t.me/${un}`);
-  } catch (_) {
-    window.open(`https://t.me/${un}`, "_blank");
+  const initDataUnsafe = tg?.initDataUnsafe;
+  const user = initDataUnsafe?.user || null;
+  if (!(user?.id || user?.user_id)) {
+    alert("Откройте приложение через Telegram, чтобы оформить покупку.");
+    if (payBuyBtn) setTimeout(() => (payBuyBtn.disabled = false), 800);
+    return;
   }
-  if (payBuyBtn) setTimeout(() => (payBuyBtn.disabled = false), 1500);
+  // 1) Сначала открываем чат (в рамках пользовательского жеста)
+  try {
+    const un = encodeURIComponent(PUBLIC_CFG.support_username || "SkIlyaA");
+    const url = `https://t.me/${un}`;
+    if (typeof tg?.openTelegramLink === "function") tg.openTelegramLink(url);
+    else if (typeof tg?.openLink === "function") tg.openLink(url);
+    else window.open(url, "_blank");
+  } catch (_) {}
+  hidePaywall();
+  // 2) Отправляем заявку в фоне, без блокировки UI
+  (async () => {
+    try {
+      const res = await fetch("/.netlify/functions/create-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user }),
+      });
+      await res.json().catch(() => ({}));
+    } catch (_) {}
+  })();
+  if (payBuyBtn) setTimeout(() => (payBuyBtn.disabled = false), 1200);
 });
 
 // Touch swipe
