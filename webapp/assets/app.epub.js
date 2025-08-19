@@ -306,7 +306,7 @@ async function initEpub() {
       "html, body": {
         margin: 0,
         padding: 0,
-        background: "#E3DFD9",
+        background: "#FFFFFF",
         overflowX: "hidden",
       },
       body: {
