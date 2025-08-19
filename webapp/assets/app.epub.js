@@ -306,13 +306,13 @@ async function initEpub() {
       "html, body": {
         margin: 0,
         padding: 0,
-        background: "transparent",
+        background: "#E3DFD9",
         overflowX: "hidden",
       },
       body: {
         fontSize: "18px",
         lineHeight: "1.6",
-        color: "#e6e6e6",
+        color: "#000000",
         overflowWrap: "anywhere",
         wordBreak: "break-word",
         WebkitHyphens: "auto",
@@ -322,13 +322,13 @@ async function initEpub() {
         maxWidth: "100%",
       },
       // Сброс любых внутренних увеличений шрифта, кроме заголовков
-      "body *": { fontSize: "inherit !important", color: "#e6e6e6" },
-      h1: { fontSize: "1.4em !important", color: "#ffffff" },
-      h2: { fontSize: "1.3em !important", color: "#ffffff" },
-      h3: { fontSize: "1.2em !important", color: "#ffffff" },
-      p: { margin: "0 0 1em", color: "#e6e6e6 !important" },
-      li: { color: "#e6e6e6 !important" },
-      a: { color: "#a3d3ff !important" },
+      "body *": { fontSize: "inherit !important", color: "#000000 !important" },
+      h1: { fontSize: "1.4em !important", color: "#000000 !important" },
+      h2: { fontSize: "1.3em !important", color: "#000000 !important" },
+      h3: { fontSize: "1.2em !important", color: "#000000 !important" },
+      p: { margin: "0 0 1em", color: "#000000 !important" },
+      li: { color: "#000000 !important" },
+      a: { color: "#0645AD !important" },
       img: {
         maxWidth: "100% !important",
         height: "auto !important",
@@ -735,21 +735,44 @@ payBuyBtn?.addEventListener("click", async (e) => {
     const httpsUrl = `https://t.me/${un}`;
     let opened = false;
     if (!opened && typeof tg?.openTelegramLink === "function") {
-      try { tg.openTelegramLink(tgUrl); opened = true; } catch {}
-      if (!opened) { try { tg.openTelegramLink(httpsUrl); opened = true; } catch {} }
+      try {
+        tg.openTelegramLink(tgUrl);
+        opened = true;
+      } catch {}
+      if (!opened) {
+        try {
+          tg.openTelegramLink(httpsUrl);
+          opened = true;
+        } catch {}
+      }
     }
     if (!opened && typeof tg?.openLink === "function") {
-      try { tg.openLink(httpsUrl); opened = true; } catch {}
+      try {
+        tg.openLink(httpsUrl);
+        opened = true;
+      } catch {}
     }
     if (!opened) {
-      try { window.location.href = tgUrl; opened = true; } catch {}
+      try {
+        window.location.href = tgUrl;
+        opened = true;
+      } catch {}
     }
     if (!opened) {
       const a = document.createElement("a");
-      a.href = httpsUrl; a.target = "_blank"; a.rel = "noopener";
-      document.body.appendChild(a); a.click(); a.remove(); opened = true;
+      a.href = httpsUrl;
+      a.target = "_blank";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      opened = true;
     }
-    setTimeout(() => { try { window.location.href = httpsUrl; } catch {} }, 250);
+    setTimeout(() => {
+      try {
+        window.location.href = httpsUrl;
+      } catch {}
+    }, 250);
   } catch (_) {}
   hidePaywall();
   // 2) Отправляем заявку в фоне, без блокировки UI

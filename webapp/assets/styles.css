@@ -229,6 +229,7 @@ body,
   overflow: hidden;
   padding-top: calc(env(safe-area-inset-top));
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: #E3DFD9; /* фон вокруг страницы как у книги */
 }
 .page {
   position: relative;
