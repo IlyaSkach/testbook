@@ -97,25 +97,16 @@ let paywallShownOnce = false;
 let demoArmed = false;
 let CH1_HREF = null;
 const ALLOWED_DEMO_HREFS = new Set();
-let demoTapCount = 0;
-const DEMO_TAP_LIMIT = 10; // максимум тапов в демо
+let CH5_HREF = null;
+let demoTapCount = 0; // не используем лимит по тачам в новой модели демо
+const DEMO_TAP_LIMIT = 10;
 let demoBlockedByTapLimit = false;
 const STORE_KEY_NAV = "nav_mode"; // tap | swipe (фиксируем tap)
 let navMode = "tap";
 
 // Глобальная проверка на возможность навигации (с учётом демо-ограничений)
 function canNavigate() {
-  if (!demoMode) return true;
-  if (demoBlockedByTapLimit) {
-    showPaywall();
-    return false;
-  }
-  demoTapCount++;
-  if (demoTapCount >= DEMO_TAP_LIMIT) {
-    demoBlockedByTapLimit = true;
-    showPaywall();
-    return false;
-  }
+  // В новой логике демо ограничение по главам, а не по количеству тапов
   return true;
 }
 
@@ -210,7 +201,7 @@ async function initEpub() {
       const picked = await selectFirstChapterHref(book, nav);
       if (picked) FIRST_HREF = picked;
     } catch (_) {}
-    // Найдём явно "ГЛАВА 1" и разрешим её в демо дополнительно
+    // Найдём явно "ГЛАВА 1" и "ГЛАВА 5" и разрешим до неё включительно
     try {
       CH1_HREF = await findHrefByLabel(nav, /^\s*ГЛАВА\s*1\b/i);
     } catch (_) {}
@@ -218,6 +209,14 @@ async function initEpub() {
     if (!CH1_HREF) {
       try {
         CH1_HREF = await findHrefByHeading(book, nav, /^\s*ГЛАВА\s*1\b/i);
+      } catch (_) {}
+    }
+    try {
+      CH5_HREF = await findHrefByLabel(nav, /^\s*ГЛАВА\s*5\b/i);
+    } catch (_) {}
+    if (!CH5_HREF) {
+      try {
+        CH5_HREF = await findHrefByHeading(book, nav, /^\s*ГЛАВА\s*5\b/i);
       } catch (_) {}
     }
     // Если всё ещё нет — разрешим следующий раздел после первой содержательной главы
@@ -233,14 +232,21 @@ async function initEpub() {
     ALLOWED_DEMO_HREFS.clear();
     if (FIRST_HREF) ALLOWED_DEMO_HREFS.add(normalizeHref(FIRST_HREF));
     if (CH1_HREF) ALLOWED_DEMO_HREFS.add(normalizeHref(CH1_HREF));
-    // Авто-добавим следующий раздел после FIRST_HREF
+    if (CH5_HREF) ALLOWED_DEMO_HREFS.add(normalizeHref(CH5_HREF));
+    // Разрешим все разделы от первой главы до главы 5 включительно
     try {
       const spine = book?.spine?.items || [];
-      const idx = spine.findIndex(
-        (it) => normalizeHref(it?.href) === normalizeHref(FIRST_HREF)
-      );
-      if (idx >= 0 && spine[idx + 1]?.href) {
-        ALLOWED_DEMO_HREFS.add(normalizeHref(spine[idx + 1].href));
+      const firstIdx = spine.findIndex((it) => normalizeHref(it?.href) === normalizeHref(FIRST_HREF));
+      let lastIdx = firstIdx;
+      if (CH5_HREF) {
+        const idx5 = spine.findIndex((it) => normalizeHref(it?.href) === normalizeHref(CH5_HREF));
+        if (idx5 >= 0) lastIdx = idx5;
+      }
+      if (firstIdx >= 0) {
+        for (let i = firstIdx; i <= lastIdx && i < spine.length; i++) {
+          const href = spine[i]?.href;
+          if (href) ALLOWED_DEMO_HREFS.add(normalizeHref(href));
+        }
       }
     } catch (_) {}
     let lastCfi = localStorage.getItem(STORE_KEY_CFI);
@@ -609,32 +615,17 @@ function normalizeHref(href) {
 
 function enforceDemo() {
   if (!demoMode) return;
-  // Разрешаем только 1-ю главу. При попытке уйти — возвращаем и один раз показываем пейволл
+  // Разрешаем чтение до главы 5 включительно; при попытке уйти дальше — показываем пейволл
   rendition.on("relocated", (location) => {
     try {
       const curHref = normalizeHref(location?.start?.href);
-      const first = normalizeHref(FIRST_HREF || book?.spine?.items?.[0]?.href);
-      if (!first || !curHref) return;
-      // Активируем ограничение только после первого открытия первой главы
-      if (
-        (curHref === first || ALLOWED_DEMO_HREFS.has(curHref)) &&
-        !demoArmed
-      ) {
-        demoArmed = true;
-        return;
-      }
-      if (!ALLOWED_DEMO_HREFS.has(curHref)) {
-        // Если ещё не "armed" — мягко вернём без пейволла (инициализация)
-        if (!demoArmed) {
-          if (FIRST_HREF) rendition.display(FIRST_HREF);
-          return;
-        }
-        // Armed: блокируем уход со 1-й главы, показываем пейволл один раз
-        if (FIRST_HREF) rendition.display(FIRST_HREF);
-        if (!paywallShownOnce) {
-          paywallShownOnce = true;
-          showPaywall();
-        }
+      if (!curHref) return;
+      const allowed = ALLOWED_DEMO_HREFS.has(curHref);
+      if (!allowed) {
+        // Блокируем переход дальше и предлагаем купить
+        const lastAllowed = Array.from(ALLOWED_DEMO_HREFS).slice(-1)[0] || FIRST_HREF;
+        if (lastAllowed) rendition.display(lastAllowed);
+        if (!paywallShownOnce) { paywallShownOnce = true; showPaywall(); }
       }
     } catch (_) {}
   });
