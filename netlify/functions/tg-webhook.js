@@ -25,6 +25,22 @@ export const handler = async (event) => {
     if (event.httpMethod !== "POST") return methodNotAllowed();
     const update = parseJSON(event.body);
     const msg = update?.message || update?.edited_message || null;
+    // pre_checkout_query
+    if (update?.pre_checkout_query) {
+      // approve pre-checkout
+      return await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerPreCheckoutQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pre_checkout_query_id: update.pre_checkout_query.id, ok: true }),
+      }).then(()=>json(200,{ok:true})).catch((e)=>json(500,{ok:false,error:e.message}));
+    }
+    // successful payment
+    if (msg?.successful_payment) {
+      try {
+        await tg("sendMessage", { chat_id: msg.chat.id, text: "Спасибо! Оплата успешна. Доступ будет выдан в течение нескольких минут." });
+      } catch {}
+      return json(200, { ok:true });
+    }
     if (!msg) return json(200, { ok: true });
 
     const chatId = msg.chat?.id;

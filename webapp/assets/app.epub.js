@@ -486,7 +486,8 @@ async function initEpub() {
     // UI-индикатор доступа, оглавления и inline-кнопки купить
     if (accessLabel)
       accessLabel.textContent = demoMode ? "Демо версия" : "Полная версия";
-    if (tocBtn) tocBtn.style.display = demoMode ? "inline-block" : "inline-block";
+    if (tocBtn)
+      tocBtn.style.display = demoMode ? "inline-block" : "inline-block";
     const buyInlineBtn = document.getElementById("buyInline");
     if (buyInlineBtn) buyInlineBtn.classList.toggle("hidden", !demoMode);
     if (createdUrl) {
@@ -797,6 +798,19 @@ payBuyBtn?.addEventListener("click", async (e) => {
         body: JSON.stringify({ user }),
       });
       await res.json().catch(() => ({}));
+    } catch (_) {}
+    // 3) Параллельно предложим оплату через sendInvoice (если бот подключён к ЮKassa)
+    try {
+      const prices = [{ label: "Полная версия", amount: (Number(PUBLIC_CFG.price_rub || 555) * 100) | 0 }];
+      const provider_token = (tg?.initDataUnsafe?.provider_token) || (PUBLIC_CFG.provider_token) || "";
+      if (prices?.length && PUBLIC_CFG.currency && (PUBLIC_CFG.bot_username || provider_token)) {
+        const chat_id = user.id || user.user_id;
+        await fetch("/.netlify/functions/tg-payments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id, title: "Полная версия книги", description: "Доступ ко всем главам", payload: "access_full", provider_token, currency: PUBLIC_CFG.currency || "RUB", prices })
+        });
+      }
     } catch (_) {}
   })();
   if (payBuyBtn) setTimeout(() => (payBuyBtn.disabled = false), 1200);
